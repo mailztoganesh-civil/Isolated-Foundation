@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piperack Pedestal Foundation Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDEFEA; --paper-line:#CBD1C6; --ink:#1B2430; --ink-soft:#4B5563;
+  --steel:#2F5B76; --steel-dark:#1F3E51; --oxide:#A8461F;
+  --good:#3F7D53; --good-bg:#E4EFE7; --bad:#B23A2E; --bad-bg:#F5E4E1;
+  --panel:#F7F8F5; --border:#B9C0B4;
+}
+*{box-sizing:border-box;}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans',sans-serif; font-size:14px; line-height:1.4;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+header{padding:20px 24px 14px; border-bottom:1px solid var(--border); background:rgba(247,248,245,.6);}
+header h1{margin:0 0 2px; font-size:19px; font-weight:600;}
+header p{margin:0; color:var(--ink-soft); font-size:12.5px; max-width:700px;}
+nav.tabs{display:flex; flex-wrap:wrap; gap:2px; padding:10px 24px; border-bottom:1px solid var(--border); background:rgba(247,248,245,.4);}
+nav.tabs button{border:1px solid var(--border); background:#fff; padding:6px 12px; font-size:12.5px; cursor:pointer; border-radius:2px; color:var(--ink-soft); font-family:inherit;}
+nav.tabs button.active{background:var(--steel); color:#fff; border-color:var(--steel);}
+main{padding:18px 24px 60px; max-width:1100px;}
+section.tab{display:none;}
+section.tab.active{display:block;}
+h2.h{font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--steel-dark); font-weight:600; margin:18px 0 8px;}
+h2.h:first-child{margin-top:0;}
+fieldset{border:1px solid var(--border); border-radius:2px; padding:12px 14px 14px; margin:0 0 14px; background:var(--panel);}
+legend{font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--steel-dark); font-weight:600; padding:0 6px;}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px 14px;}
+.field{display:flex; flex-direction:column; gap:2px;}
+.field label{font-size:11.5px; color:var(--ink-soft);}
+input[type=number],input[type=text],select{padding:5px 7px; border:1px solid var(--border); border-radius:2px; background:#fff; font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--ink); width:100%;}
+select{font-family:'IBM Plex Sans',sans-serif;}
+input:focus,select:focus{outline:none; border-color:var(--steel); box-shadow:0 0 0 2px rgba(47,91,118,.15);}
+table{border-collapse:collapse; width:100%; font-size:12.5px; margin-bottom:10px;}
+table.editable th, table.editable td{border:1px solid var(--border); padding:3px; text-align:center;}
+table.editable th{background:var(--panel); font-weight:600; font-size:11px;}
+table.editable input{border:none; width:70px; padding:3px; text-align:center; font-size:12px;}
+table.editable input.wide{width:100px;}
+table.editable td.name-cell{text-align:left;}
+table.results th{text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); border-bottom:1px solid var(--border); padding:5px 7px; font-weight:600;}
+table.results td{padding:6px 7px; border-bottom:1px solid #DDE1D8;}
+table.results td.num{font-family:'IBM Plex Mono',monospace; text-align:right;}
+.tag{display:inline-block; font-size:10.5px; font-weight:600; padding:2px 6px; border-radius:2px;}
+.tag.pass{background:var(--good-bg); color:var(--good);}
+.tag.fail{background:var(--bad-bg); color:var(--bad);}
+.tag.info{background:#E7EEF2; color:var(--steel-dark);}
+button.btn{border:1px solid var(--steel); background:#fff; color:var(--steel-dark); padding:5px 10px; font-size:12px; border-radius:2px; cursor:pointer; font-family:inherit;}
+button.btn:hover{background:rgba(47,91,118,.08);}
+button.btn.danger{border-color:var(--bad); color:var(--bad);}
+.note{font-size:11.5px; color:var(--ink-soft); margin:4px 0 10px;}
+.warn-box{border:1px solid var(--oxide); background:#FBEEE8; border-radius:2px; padding:10px 12px; font-size:12px; margin-bottom:14px;}
+.warn-box b{color:var(--oxide);}
+.scroll-x{overflow-x:auto;}
+.banner{padding:12px 16px; border:1px solid var(--border); border-radius:2px; margin-bottom:16px; font-size:13px;}
+.banner.pass{background:var(--good-bg); border-color:var(--good); color:var(--good);}
+.banner.fail{background:var(--bad-bg); border-color:var(--bad); color:var(--bad);}
+.summary-line{margin:4px 0; font-size:12.5px;}
+.two-col{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+@media (max-width:700px){.two-col{grid-template-columns:1fr;}}
+
+/* ---- detailed report ---- */
+.rpt-sec{margin:22px 0;}
+.rpt-sec h3{font-size:13px; font-weight:600; color:var(--steel-dark); margin:0 0 8px; border-bottom:1px solid var(--border); padding-bottom:4px;}
+.rpt-sec h4{font-size:12px; font-weight:600; color:var(--ink); margin:12px 0 4px;}
+.rpt-step{font-family:'IBM Plex Mono',monospace; font-size:12px; margin:2px 0 2px 12px; color:var(--ink);}
+.rpt-step .lbl{font-family:'IBM Plex Sans',sans-serif; color:var(--ink-soft); margin-right:4px;}
+.rpt-concl{margin:8px 0 4px 0; font-size:12.5px; font-weight:600;}
+.rpt-concl.pass{color:var(--good);}
+.rpt-concl.fail{color:var(--bad); background:var(--bad-bg); padding:6px 8px; border-left:3px solid var(--bad);}
+.rpt-fail-detail{background:var(--bad-bg); border-left:3px solid var(--bad); padding:8px 10px; margin:6px 0; font-size:12px;}
+.rpt-title{border-bottom:2px solid var(--ink); padding-bottom:10px; margin-bottom:18px;}
+.rpt-title h1{font-size:17px; margin:0 0 3px;}
+.rpt-title .sub{font-size:12px; color:var(--ink-soft);}
+
+@media print{
+  header, nav.tabs, #reportToolbar, .banner, button{display:none !important;}
+  section.tab{display:none !important;}
+  section#tab-report.active{display:block !important;}
+  main{padding:0; max-width:none;}
+  body{background:#fff;}
+  .rpt-sec{page-break-inside:avoid;}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Piperack Pedestal Foundation Design</h1>
+  <p>Isolated pedestal footing under biaxial eccentric load — matching the methodology of AD204-601-G-03378, updated to ACI 318-M14 (IBC 2009 / ASCE 7-05). Edit load cases and combinations below; every check recalculates live.</p>
+</header>
+<nav class="tabs">
+  <button data-tab="geom" class="active">Geometry</button>
+  <button data-tab="loads">Load cases</button>
+  <button data-tab="combos">Combinations</button>
+  <button data-tab="results">Results</button>
+  <button data-tab="report">Report</button>
+</nav>
+<main>
+
+<section class="tab active" id="tab-geom">
+  <h2 class="h">Footing &amp; soil</h2>
+  <div class="grid">
+    <div class="field"><label>Lx — footing width X (m)</label><input type="number" id="Lx" value="3.5" step="0.1"></div>
+    <div class="field"><label>Ly — footing width Y (m)</label><input type="number" id="Ly" value="3.5" step="0.1"></div>
+    <div class="field"><label>Hf — footing thickness (m)</label><input type="number" id="Hf" value="0.4" step="0.05"></div>
+    <div class="field"><label>Hs — soil above footing (m)</label><input type="number" id="Hs" value="1.6" step="0.1"></div>
+    <div class="field"><label>Allow. bearing capacity (kPa)</label><input type="number" id="qa" value="250" step="10"></div>
+    <div class="field"><label>Unit wt. soil (kN/m3)</label><input type="number" id="gammaS" value="18" step="0.5"></div>
+    <div class="field"><label>Unit wt. concrete (kN/m3)</label><input type="number" id="gammaC" value="24" step="0.5"></div>
+    <div class="field"><label>Friction coefficient</label><input type="number" id="mu" value="0.30" step="0.01"></div>
+    <div class="field"><label>S.F. overturning</label><input type="number" id="sfOT" value="1.5" step="0.1"></div>
+    <div class="field"><label>S.F. sliding</label><input type="number" id="sfSL" value="1.5" step="0.1"></div>
+  </div>
+
+  <h2 class="h">Pedestal (column)</h2>
+  <div class="grid">
+    <div class="field"><label>dx — pedestal width X (mm)</label><input type="number" id="pedDx" value="850" step="10"></div>
+    <div class="field"><label>dy — pedestal width Y (mm)</label><input type="number" id="pedDy" value="1100" step="10"></div>
+    <div class="field"><label>Hp — pedestal height (m)</label><input type="number" id="Hp" value="1.9" step="0.1"></div>
+    <div class="field"><label>ex — offset from footing center (mm)</label><input type="number" id="pedEx" value="0" step="10"></div>
+    <div class="field"><label>ey — offset from footing center (mm)</label><input type="number" id="pedEy" value="0" step="10"></div>
+    <div class="field"><label>Column effective length factor K</label><input type="number" id="Kfac" value="1.5" step="0.1"></div>
+  </div>
+  <p class="note">Single centered pedestal per footing is fully supported; offset (ex, ey) handles one off-center pedestal. Multiple pedestals sharing one footing (as the source report allows) aren't modeled yet.</p>
+
+  <h2 class="h">Concrete &amp; reinforcement</h2>
+  <div class="grid">
+    <div class="field"><label>f'c (MPa)</label><input type="number" id="fc" value="35" step="5"></div>
+    <div class="field"><label>fy (MPa)</label><input type="number" id="fy" value="420" step="10"></div>
+    <div class="field"><label>Cover — footing (mm)</label><input type="number" id="coverF" value="75" step="5"></div>
+    <div class="field"><label>Cover — pedestal (mm)</label><input type="number" id="coverP" value="75" step="5"></div>
+    <div class="field"><label>Main bar dia. — footing (mm)</label>
+      <select id="barDiaF"><option>16</option><option selected>25</option><option>28</option><option>32</option></select>
+    </div>
+    <div class="field"><label>Pedestal assumed steel ratio ρ (total)</label><input type="number" id="pedRho" value="0.007" step="0.001"></div>
+    <div class="field"><label>Pedestal bar dia. (mm)</label>
+      <select id="barDiaP"><option>16</option><option>20</option><option selected>25</option><option>28</option><option>32</option></select>
+    </div>
+  </div>
+</section>
+
+<section class="tab" id="tab-loads">
+  <h2 class="h">Primary load cases</h2>
+  <p class="note">Reactions at the top of the pedestal, from your structural analysis. Positive Fz = downward. Add one row per primary case (dead, live, wind, seismic, friction, etc.).</p>
+  <div class="scroll-x">
+    <table class="editable" id="loadCaseTable">
+      <thead><tr><th>Name</th><th>Fx (kN)</th><th>Fy (kN)</th><th>Fz (kN)</th><th>Mx (kN·m)</th><th>My (kN·m)</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <button class="btn" id="addLoadCase">+ Add load case</button>
+</section>
+
+<section class="tab" id="tab-combos">
+  <h2 class="h">Load combinations</h2>
+  <p class="note">One row per combination. "Type" decides which checks it feeds: <b>elastic</b> combos go into soil bearing, stability and crack-width checks (service loads); <b>ultimate</b> combos go into footing/pedestal strength design (factored loads). "Soil &amp; Fdn factor" multiplies the self-weight of the footing, soil above it and pedestal automatically — set it to match your load factor for that combo (e.g. 1.2 for ultimate gravity, 0.9 for wind uplift).</p>
+  <div class="scroll-x">
+    <table class="editable" id="comboTable">
+      <thead><tr id="comboHeadRow"><th>LC#</th><th>Type</th><th>Soil&amp;Fdn factor</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <button class="btn" id="addCombo">+ Add combination</button>
+</section>
+
+<section class="tab" id="tab-results">
+  <div id="resultsRoot"></div>
+</section>
+
+<section class="tab" id="tab-report">
+  <div id="reportToolbar" style="margin-bottom:12px;">
+    <button class="btn" id="printReportBtn">Print / Save as PDF</button>
+    <span class="note" style="margin-left:8px;">Generate this from the Results tab first — it reflects whatever combos and geometry are currently entered.</span>
+  </div>
+  <div id="reportRoot"></div>
+</section>
+
+</main>
+
+<script>
+// ================= ENGINE (validated against AD204-601-G-03378) =================
+const EX_LX=[0,0.02,0.04,0.06,0.08,0.10,0.12,0.14,0.16,0.18,0.20,0.30,0.40,0.50];
+const EY_LY=EX_LX;
+const C3_TABLE=[
+[1.0,1.1,1.2,1.4,1.5,1.6,1.7,1.8,2.0,2.1,2.2,3.3,6.7,Infinity],
+[1.1,1.2,1.4,1.5,1.6,1.7,1.8,2.0,2.1,2.2,2.4,3.5,7.1,Infinity],
+[1.2,1.4,1.5,1.6,1.7,1.8,2.0,2.1,2.2,2.3,2.5,3.8,7.5,Infinity],
+[1.4,1.5,1.6,1.7,1.8,2.0,2.1,2.2,2.3,2.5,2.7,4.0,8.0,Infinity],
+[1.5,1.6,1.7,1.8,2.0,2.1,2.2,2.3,2.5,2.6,2.8,4.2,8.5,Infinity],
+[1.6,1.7,1.8,2.0,2.1,2.2,2.3,2.5,2.6,2.8,3.0,4.5,9.0,Infinity],
+[1.7,1.8,2.0,2.1,2.2,2.3,2.5,2.6,2.8,3.0,3.2,4.8,9.6,Infinity],
+[1.8,2.0,2.1,2.2,2.3,2.5,2.6,2.8,3.0,3.2,3.4,5.1,10.2,Infinity],
+[2.0,2.1,2.2,2.3,2.5,2.6,2.8,3.0,3.2,3.4,3.6,5.4,10.9,Infinity],
+[2.1,2.2,2.3,2.5,2.6,2.8,3.0,3.2,3.4,3.6,3.9,5.8,11.6,Infinity],
+[2.2,2.4,2.5,2.7,2.8,3.0,3.2,3.4,3.6,3.9,4.1,6.2,12.5,Infinity],
+[3.3,3.5,3.8,4.0,4.2,4.5,4.8,5.1,5.4,5.8,6.2,9.4,18.8,Infinity],
+[6.7,7.1,7.5,8.0,8.5,9.0,9.6,10.2,10.9,11.6,12.5,18.8,37.5,Infinity],
+[Infinity,Infinity,Infinity,Infinity,Infinity,Infinity,Infinity,Infinity,Infinity,Infinity,Infinity,Infinity,Infinity,Infinity]];
+function bilerp(xArr,yArr,table,x,y){
+  x=Math.max(xArr[0],Math.min(x,xArr[xArr.length-1]));
+  y=Math.max(yArr[0],Math.min(y,yArr[yArr.length-1]));
+  let i=0; while(i<xArr.length-2 && xArr[i+1]<x) i++;
+  let j=0; while(j<yArr.length-2 && yArr[j+1]<y) j++;
+  const x0=xArr[i],x1=xArr[i+1],y0=yArr[j],y1=yArr[j+1];
+  const q11=table[j][i],q21=table[j][i+1],q12=table[j+1][i],q22=table[j+1][i+1];
+  if(!isFinite(q11)||!isFinite(q21)||!isFinite(q12)||!isFinite(q22)) return Infinity;
+  const tx=x1===x0?0:(x-x0)/(x1-x0), ty=y1===y0?0:(y-y0)/(y1-y0);
+  const a=q11+(q21-q11)*tx, b=q12+(q22-q12)*tx;
+  return a+(b-a)*ty;
+}
+function getC3(exLx,eyLy){ return bilerp(EX_LX,EY_LY,C3_TABLE,exLx,eyLy); }
+
+function loadCombo(loadCases,factors){
+  const r={Fx:0,Fy:0,Fz:0,Mx:0,My:0};
+  for(const name in factors){
+    const f=factors[name]; if(!f) continue;
+    const lc=loadCases[name]; if(!lc) continue;
+    r.Fx+=f*lc.Fx; r.Fy+=f*lc.Fy; r.Fz+=f*lc.Fz; r.Mx+=f*lc.Mx; r.My+=f*lc.My;
+  }
+  return r;
+}
+function deriveTotal(raw,Hf,Hp,pedEx_m,pedEy_m,selfW){
+  const H=Hf+Hp;
+  const Mxs=raw.Fy*H, Mys=raw.Fx*H;
+  const Mxe=pedEy_m*raw.Fy, Mye=pedEx_m*raw.Fx;
+  const Fz=raw.Fz+selfW;
+  return {...raw,Fz,Mxs,Mys,Mxe,Mye,sumMx:raw.Mx+Mxs+Mxe,sumMy:raw.My+Mys+Mye};
+}
+function soilBearing4(Fz,sumMx,sumMy,Area,Zx,Zy){
+  const s1=Fz/Area+sumMx/Zx-sumMy/Zy, s2=Fz/Area-sumMx/Zx-sumMy/Zy;
+  const s3=Fz/Area+sumMx/Zx+sumMy/Zy, s4=Fz/Area-sumMx/Zx+sumMy/Zy;
+  return {s1,s2,s3,s4,min:Math.min(s1,s2,s3,s4),max:Math.max(s1,s2,s3,s4)};
+}
+const MPA_TO_KGCM2=10.1972, KGF_TO_KN=1/101.9716;
+function flexureOmega(Mu_kNm,fc_MPa,b_mm,d_mm,phi=0.9){
+  const Mu_Nmm=Mu_kNm*1e6;
+  const Rn=Mu_Nmm/(phi*fc_MPa*b_mm*d_mm*d_mm);
+  const disc=1-4*0.59*Rn;
+  if(disc<0) return {error:true,Rn};
+  const w=(1-Math.sqrt(disc))/(2*0.59);
+  return {Rn,w,rho:w*fc_MPa/ (420) }; // rho computed by caller with actual fy
+}
+function oneWayShearCap(fc_MPa,b_mm,d_mm,phi=0.75,coef=0.53){
+  const fc_k=fc_MPa*MPA_TO_KGCM2, b_cm=b_mm/10, d_cm=d_mm/10;
+  return phi*coef*Math.sqrt(fc_k)*b_cm*d_cm*KGF_TO_KN;
+}
+function twoWayShearCap(fc_MPa,bo_mm,d_mm,phi=0.75,coef=1.1){
+  const fc_k=fc_MPa*MPA_TO_KGCM2, bo_cm=bo_mm/10, d_cm=d_mm/10;
+  return phi*coef*Math.sqrt(fc_k)*bo_cm*d_cm*KGF_TO_KN;
+}
+function columnMnFull(Pn_N,h_mm,b_mm,cover_mm,barDia_mm,AsTotal_mm2,fc_MPa,fy_MPa,Es_MPa=200000){
+  const nLayers=2;
+  const layerAs=AsTotal_mm2/nLayers;
+  const dLayer=[cover_mm+barDia_mm/2, h_mm-(cover_mm+barDia_mm/2)];
+  const ecu=0.003;
+  const beta1= fc_MPa<=28?0.85:Math.max(0.65,0.85-0.05*(fc_MPa-28)/7);
+  function forcesForC(c){
+    let P=0,M=0;
+    const a=beta1*c, aEff=Math.min(a,h_mm);
+    const Cc=0.85*fc_MPa*b_mm*aEff, centroidC=aEff/2;
+    P+=Cc; M+=Cc*(h_mm/2-centroidC);
+    for(let i=0;i<nLayers;i++){
+      const y=dLayer[i];
+      let fs=Es_MPa*ecu*(c-y)/c;
+      fs=Math.max(-fy_MPa,Math.min(fy_MPa,fs));
+      let force=fs*layerAs;
+      if(y<a) force-=0.85*fc_MPa*layerAs;
+      P+=force; M+=force*(h_mm/2-y);
+    }
+    return {P,M};
+  }
+  let lo=1,hi=h_mm*3, flo=forcesForC(lo).P-Pn_N;
+  for(let it=0;it<100;it++){
+    const mid=(lo+hi)/2, fm=forcesForC(mid).P-Pn_N;
+    if(flo*fm<=0) hi=mid; else {lo=mid; flo=fm;}
+  }
+  const c=(lo+hi)/2;
+  const {M}=forcesForC(c);
+  const yExtreme=dLayer[dLayer.length-1];
+  const epsT = -ecu*(c-yExtreme)/c; // positive = tension
+  return {Mn:Math.abs(M), c, epsT};
+}
+function columnMn(...args){ return columnMnFull(...args).Mn; }
+// ACI 318-M14 Table 21.2.2: phi for tied sections via net tensile strain (replaces the
+// older Pu/(0.1 f'c Ag) linear approximation used in ACI 318-11-era hand calc sheets)
+function phi318M14(epsT, fy_MPa, Es_MPa=200000){
+  const epsTy = fy_MPa/Es_MPa;
+  if (epsT<=epsTy) return 0.65;
+  if (epsT>=0.005) return 0.90;
+  return 0.65 + 0.25*(epsT-epsTy)/(0.005-epsTy);
+}
+function solvePhiPn(Pu_N,h_mm,b_mm,cover_mm,barDia_mm,AsTotal_mm2,fc_MPa,fy_MPa){
+  let phi=0.65, epsT=0;
+  for(let it=0; it<15; it++){
+    const Pn_N=Pu_N/phi;
+    const r=columnMnFull(Pn_N,h_mm,b_mm,cover_mm,barDia_mm,AsTotal_mm2,fc_MPa,fy_MPa);
+    epsT=r.epsT;
+    const newPhi=phi318M14(epsT,fy_MPa);
+    if(Math.abs(newPhi-phi)<0.0005){ phi=newPhi; break; }
+    phi=newPhi;
+  }
+  return {phi, epsT, Pn_N:Pu_N/phi};
+}
+function solveBresler(rx,ry){
+  function f(beta){ const a=Math.log(0.5)/Math.log(beta); return Math.pow(rx,a)+Math.pow(ry,a)-1; }
+  let lo=0.3,hi=0.95, flo=f(lo);
+  for(let it=0;it<100;it++){ const mid=(lo+hi)/2, fm=f(mid); if(flo*fm<=0) hi=mid; else {lo=mid; flo=fm;} }
+  const beta=(lo+hi)/2;
+  return {beta, alpha: Math.log(0.5)/Math.log(beta)};
+}
+function crackWidth({Ma_kNm,H_mm,B_mm,fc_MPa,cover_mm,tDia,nT,cDia,nC}){
+  const Es=205000, Ec=4700*Math.sqrt(fc_MPa), n=Es/Ec;
+  const at=cover_mm+tDia/2, ac=cover_mm+cDia/2, d=H_mm-at;
+  const Ast=nT*Math.PI/4*tDia*tDia, Asc=nC*Math.PI/4*cDia*cDia;
+  const b=B_mm/(n*Ast), r=((n-1)*Asc)/(n*Ast);
+  const C=(Math.sqrt(2*d*b*(1+r*ac/d)+Math.pow(1+r,2))-(1+r))/b;
+  const Z=d-C/3;
+  const fs=(Ma_kNm*1e6)/(Ast*Z);
+  const P=(H_mm-C)/(d-C);
+  const t=2*at, A=(B_mm*t)/nT;
+  const Wcrk=0.011e-3*P*fs*Math.pow(A*at,1/3);
+  return {n,d,C,Z,fs,P,A,Wcrk,Ast};
+}
+// ================= END ENGINE =================
+
+// ---------------- STATE ----------------
+let loadCases=[
+  {name:'DLs', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'DLnm', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'DLnsi', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'LL', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'TLss+', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'TLss-', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'DLe-p', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'DLefp', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'DLe-e', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'LLo-p', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'LLofp', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'LLo-e', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'DLt-p', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'DLt-fp', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'DLt-e', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'TLA', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'TLA-FP', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'TLG', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'TLG-FP', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'TLF', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'TLF-FP', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'TLTF', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'TLTF-FP', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'PSVX', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'PSVZ', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'PSVY', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'LBLC', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'WLX', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'WLZ', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'WLX-P', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'WLZ-P', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'EEHX', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'EEHZ', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'EEVY', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'EOHX', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'EOHZ', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'EOVY', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'ML1V', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'ML1H', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'ML2V', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+  {name:'ML2H', Fx:0,Fy:0,Fz:0,Mx:0,My:0},
+];
+let combos=[
+  {name:'1001', type:'ultimate', soilFactor:1.4, factors:{'DLs':1.4,'DLnm':1.4,'DLnsi':1.4,'TLss+':1.2,'DLe-p':1.4,'DLe-e':1.4}},
+  {name:'1002', type:'ultimate', soilFactor:1.4, factors:{'DLs':1.4,'DLnm':1.4,'DLnsi':1.4,'TLss-':1.2,'DLe-p':1.4,'DLe-e':1.4}},
+  {name:'1003', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLe-e':0.9,'WLX':1,'WLX-P':1}},
+  {name:'1004', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLe-e':0.9,'WLX':-1,'WLX-P':-1}},
+  {name:'1005', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLe-e':0.9,'WLZ':1,'WLZ-P':1}},
+  {name:'1006', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLe-e':0.9,'WLZ':-1,'WLZ-P':-1}},
+  {name:'1007', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':1.6,'TLA-FP':1.6,'TLG':1.6,'TLG-FP':1.6,'TLF':0.8,'TLF-FP':0.8,'TLTF':0.8,'TLTF-FP':0.8}},
+  {name:'1008', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':1.6,'TLA-FP':1.6,'TLG':-1.6,'TLG-FP':-1.6,'TLF':0.8,'TLF-FP':0.8,'TLTF':-0.8,'TLTF-FP':-0.8}},
+  {name:'1009', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-1.6,'TLA-FP':-1.6,'TLG':1.6,'TLG-FP':1.6,'TLF':-0.8,'TLF-FP':-0.8,'TLTF':0.8,'TLTF-FP':0.8}},
+  {name:'1010', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-1.6,'TLA-FP':-1.6,'TLG':-1.6,'TLG-FP':-1.6,'TLF':-0.8,'TLF-FP':-0.8,'TLTF':-0.8,'TLTF-FP':-0.8}},
+  {name:'1011', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':1.6,'TLA-FP':1.6,'TLG':1.6,'TLG-FP':1.6,'TLF':0.8,'TLF-FP':0.8,'TLTF':0.8,'TLTF-FP':0.8}},
+  {name:'1012', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':1.6,'TLA-FP':1.6,'TLG':-1.6,'TLG-FP':-1.6,'TLF':0.8,'TLF-FP':0.8,'TLTF':-0.8,'TLTF-FP':-0.8}},
+  {name:'1013', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-1.6,'TLA-FP':-1.6,'TLG':1.6,'TLG-FP':1.6,'TLF':-0.8,'TLF-FP':-0.8,'TLTF':0.8,'TLTF-FP':0.8}},
+  {name:'1014', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-1.6,'TLA-FP':-1.6,'TLG':-1.6,'TLG-FP':-1.6,'TLF':-0.8,'TLF-FP':-0.8,'TLTF':-0.8,'TLTF-FP':-0.8}},
+  {name:'1015', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':1.2,'TLG-FP':1.2,'TLF':0.6,'TLF-FP':0.6,'TLTF':0.6,'TLTF-FP':0.6}},
+  {name:'1016', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':-1.2,'TLG-FP':-1.2,'TLF':0.6,'TLF-FP':0.6,'TLTF':-0.6,'TLTF-FP':-0.6}},
+  {name:'1017', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':1.2,'TLG-FP':1.2,'TLF':-0.6,'TLF-FP':-0.6,'TLTF':0.6,'TLTF-FP':0.6}},
+  {name:'1018', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':-1.2,'TLG-FP':-1.2,'TLF':-0.6,'TLF-FP':-0.6,'TLTF':-0.6,'TLTF-FP':-0.6}},
+  {name:'1019', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':1.2,'TLG-FP':1.2,'TLF':0.6,'TLF-FP':0.6,'TLTF':0.6,'TLTF-FP':0.6}},
+  {name:'1020', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':-1.2,'TLG-FP':-1.2,'TLF':0.6,'TLF-FP':0.6,'TLTF':-0.6,'TLTF-FP':-0.6}},
+  {name:'1021', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':1.2,'TLG-FP':1.2,'TLF':-0.6,'TLF-FP':-0.6,'TLTF':0.6,'TLTF-FP':0.6}},
+  {name:'1022', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':-1.2,'TLG-FP':-1.2,'TLF':-0.6,'TLF-FP':-0.6,'TLTF':-0.6,'TLTF-FP':-0.6}},
+  {name:'1023', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'WLX':0.5,'WLX-P':0.5}},
+  {name:'1024', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'WLX':-0.5,'WLX-P':-0.5}},
+  {name:'1025', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'WLZ':0.5,'WLZ-P':0.5}},
+  {name:'1026', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'WLZ':-0.5,'WLZ-P':-0.5}},
+  {name:'1027', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':1.2,'TLG-FP':1.2,'WLX':1,'WLX-P':1}},
+  {name:'1028', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':-1.2,'TLG-FP':-1.2,'WLX':1,'WLX-P':1}},
+  {name:'1029', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':1.2,'TLG-FP':1.2,'WLX':-1,'WLX-P':-1}},
+  {name:'1030', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':-1.2,'TLG-FP':-1.2,'WLX':-1,'WLX-P':-1}},
+  {name:'1031', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':1.2,'TLG-FP':1.2,'WLZ':1,'WLZ-P':1}},
+  {name:'1032', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':-1.2,'TLG-FP':-1.2,'WLZ':1,'WLZ-P':1}},
+  {name:'1033', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':1.2,'TLG-FP':1.2,'WLZ':-1,'WLZ-P':-1}},
+  {name:'1034', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':-1.2,'TLG-FP':-1.2,'WLZ':-1,'WLZ-P':-1}},
+  {name:'1035', type:'ultimate', soilFactor:1.4, factors:{'DLs':1.4,'DLnm':1.4,'DLnsi':1.4,'DLe-p':1.4,'DLefp':1.4,'DLe-e':1.4,'DLt-p':1.4,'DLt-fp':1.4,'DLt-e':1.4}},
+  {name:'1036', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'DLt-p':1.2,'DLt-fp':1.2,'DLt-e':1.2,'WLX':0.5,'WLX-P':0.5}},
+  {name:'1037', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'DLt-p':1.2,'DLt-fp':1.2,'DLt-e':1.2,'WLX':-0.5,'WLX-P':-0.5}},
+  {name:'1038', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'DLt-p':1.2,'DLt-fp':1.2,'DLt-e':1.2,'WLZ':0.5,'WLZ-P':0.5}},
+  {name:'1039', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'DLt-p':1.2,'DLt-fp':1.2,'DLt-e':1.2,'WLZ':-0.5,'WLZ-P':-0.5}},
+  {name:'1040', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'DLt-p':1.2,'DLt-fp':1.2,'DLt-e':1.2,'WLX':0.5,'WLX-P':0.5}},
+  {name:'1041', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'DLt-p':1.2,'DLt-fp':1.2,'DLt-e':1.2,'WLX':-0.5,'WLX-P':-0.5}},
+  {name:'1042', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'DLt-p':1.2,'DLt-fp':1.2,'DLt-e':1.2,'WLZ':0.5,'WLZ-P':0.5}},
+  {name:'1043', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'DLt-p':1.2,'DLt-fp':1.2,'DLt-e':1.2,'WLZ':-0.5,'WLZ-P':-0.5}},
+  {name:'1044', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'WLX':0.5}},
+  {name:'1045', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'WLX':-0.5}},
+  {name:'1046', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'WLZ':0.5}},
+  {name:'1047', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'WLZ':-0.5}},
+  {name:'1048', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'WLX':0.5}},
+  {name:'1049', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'WLX':-0.5}},
+  {name:'1050', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'WLZ':0.5}},
+  {name:'1051', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'WLZ':-0.5}},
+  {name:'1052', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':1.2,'TLG-FP':1.2,'EOHX':1,'EOHZ':0.3,'EOVY':1}},
+  {name:'1053', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':-1.2,'TLG-FP':-1.2,'EOHX':1,'EOHZ':-0.3,'EOVY':1}},
+  {name:'1054', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':1.2,'TLG-FP':1.2,'EOHX':-1,'EOHZ':0.3,'EOVY':1}},
+  {name:'1055', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':-1.2,'TLG-FP':-1.2,'EOHX':-1,'EOHZ':-0.3,'EOVY':1}},
+  {name:'1056', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':1.2,'TLG-FP':1.2,'EOHX':0.3,'EOHZ':1,'EOVY':1}},
+  {name:'1057', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':-1.2,'TLG-FP':-1.2,'EOHX':0.3,'EOHZ':-1,'EOVY':1}},
+  {name:'1058', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':1.2,'TLG-FP':1.2,'EOHX':-0.3,'EOHZ':1,'EOVY':1}},
+  {name:'1059', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':-1.2,'TLG-FP':-1.2,'EOHX':-0.3,'EOHZ':-1,'EOVY':1}},
+  {name:'1060', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':1,'EEHZ':0.3,'EEVY':-1}},
+  {name:'1061', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':1,'EEHZ':-0.3,'EEVY':-1}},
+  {name:'1062', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':-1,'EEHZ':0.3,'EEVY':-1}},
+  {name:'1063', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':-1,'EEHZ':-0.3,'EEVY':-1}},
+  {name:'1064', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':0.3,'EEHZ':1,'EEVY':-1}},
+  {name:'1065', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':0.3,'EEHZ':-1,'EEVY':-1}},
+  {name:'1066', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':-0.3,'EEHZ':1,'EEVY':-1}},
+  {name:'1067', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':-0.3,'EEHZ':-1,'EEVY':-1}},
+  {name:'1068', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':1.2,'TLG-FP':1.2,'TLF':0.6,'TLF-FP':0.6,'TLTF':0.6,'TLTF-FP':0.6,'PSVX':1,'PSVZ':1,'PSVY':1}},
+  {name:'1069', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':-1.2,'TLG-FP':-1.2,'TLF':0.6,'TLF-FP':0.6,'TLTF':-0.6,'TLTF-FP':-0.6,'PSVX':1,'PSVZ':-1,'PSVY':1}},
+  {name:'1070', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':1.2,'TLG-FP':1.2,'TLF':-0.6,'TLF-FP':-0.6,'TLTF':0.6,'TLTF-FP':0.6,'PSVX':-1,'PSVZ':1,'PSVY':1}},
+  {name:'1071', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':-1.2,'TLG-FP':-1.2,'TLF':-0.6,'TLF-FP':-0.6,'TLTF':-0.6,'TLTF-FP':-0.6,'PSVX':-1,'PSVZ':-1,'PSVY':1}},
+  {name:'1072', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':1.2,'TLG-FP':1.2,'TLF':0.6,'TLF-FP':0.6,'TLTF':0.6,'TLTF-FP':0.6,'PSVX':1,'PSVZ':1,'PSVY':1}},
+  {name:'1073', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':-1.2,'TLG-FP':-1.2,'TLF':0.6,'TLF-FP':0.6,'TLTF':-0.6,'TLTF-FP':-0.6,'PSVX':1,'PSVZ':-1,'PSVY':1}},
+  {name:'1074', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':1.2,'TLG-FP':1.2,'TLF':-0.6,'TLF-FP':-0.6,'TLTF':0.6,'TLTF-FP':0.6,'PSVX':-1,'PSVZ':1,'PSVY':1}},
+  {name:'1075', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':-1.2,'TLG-FP':-1.2,'TLF':-0.6,'TLF-FP':-0.6,'TLTF':-0.6,'TLTF-FP':-0.6,'PSVX':-1,'PSVZ':-1,'PSVY':1}},
+  {name:'1076', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':1.6,'TLA-FP':1.6,'TLG':1.6,'TLG-FP':1.6,'TLF':0.8,'TLF-FP':0.8,'TLTF':0.8,'TLTF-FP':0.8,'ML1V':1.6,'ML1H':1.6}},
+  {name:'1077', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':1.6,'TLA-FP':1.6,'TLG':-1.6,'TLG-FP':-1.6,'TLF':0.8,'TLF-FP':0.8,'TLTF':-0.8,'TLTF-FP':-0.8,'ML1V':1.6,'ML1H':1.6}},
+  {name:'1078', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-1.6,'TLA-FP':-1.6,'TLG':1.6,'TLG-FP':1.6,'TLF':-0.8,'TLF-FP':-0.8,'TLTF':0.8,'TLTF-FP':0.8,'ML1V':1.6,'ML1H':1.6}},
+  {name:'1079', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-1.6,'TLA-FP':-1.6,'TLG':-1.6,'TLG-FP':-1.6,'TLF':-0.8,'TLF-FP':-0.8,'TLTF':-0.8,'TLTF-FP':-0.8,'ML1V':1.6,'ML1H':1.6}},
+  {name:'1080', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':1.6,'TLA-FP':1.6,'TLG':1.6,'TLG-FP':1.6,'TLF':0.8,'TLF-FP':0.8,'TLTF':0.8,'TLTF-FP':0.8,'ML1V':1.6,'ML1H':-1.6}},
+  {name:'1081', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':1.6,'TLA-FP':1.6,'TLG':-1.6,'TLG-FP':-1.6,'TLF':0.8,'TLF-FP':0.8,'TLTF':-0.8,'TLTF-FP':-0.8,'ML1V':1.6,'ML1H':-1.6}},
+  {name:'1082', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-1.6,'TLA-FP':-1.6,'TLG':1.6,'TLG-FP':1.6,'TLF':-0.8,'TLF-FP':-0.8,'TLTF':0.8,'TLTF-FP':0.8,'ML1V':1.6,'ML1H':-1.6}},
+  {name:'1083', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-1.6,'TLA-FP':-1.6,'TLG':-1.6,'TLG-FP':-1.6,'TLF':-0.8,'TLF-FP':-0.8,'TLTF':-0.8,'TLTF-FP':-0.8,'ML1V':1.6,'ML1H':-1.6}},
+  {name:'1084', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':1.6,'TLA-FP':1.6,'TLG':1.6,'TLG-FP':1.6,'TLF':0.8,'TLF-FP':0.8,'TLTF':0.8,'TLTF-FP':0.8,'ML2V':1.6,'ML2H':1.6}},
+  {name:'1085', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':1.6,'TLA-FP':1.6,'TLG':-1.6,'TLG-FP':-1.6,'TLF':0.8,'TLF-FP':0.8,'TLTF':-0.8,'TLTF-FP':-0.8,'ML2V':1.6,'ML2H':1.6}},
+  {name:'1086', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-1.6,'TLA-FP':-1.6,'TLG':1.6,'TLG-FP':1.6,'TLF':-0.8,'TLF-FP':-0.8,'TLTF':0.8,'TLTF-FP':0.8,'ML2V':1.6,'ML2H':1.6}},
+  {name:'1087', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-1.6,'TLA-FP':-1.6,'TLG':-1.6,'TLG-FP':-1.6,'TLF':-0.8,'TLF-FP':-0.8,'TLTF':-0.8,'TLTF-FP':-0.8,'ML2V':1.6,'ML2H':1.6}},
+  {name:'1088', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':1.6,'TLA-FP':1.6,'TLG':1.6,'TLG-FP':1.6,'TLF':0.8,'TLF-FP':0.8,'TLTF':0.8,'TLTF-FP':0.8,'ML2V':1.6,'ML2H':-1.6}},
+  {name:'1089', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':1.6,'TLA-FP':1.6,'TLG':-1.6,'TLG-FP':-1.6,'TLF':0.8,'TLF-FP':0.8,'TLTF':-0.8,'TLTF-FP':-0.8,'ML2V':1.6,'ML2H':-1.6}},
+  {name:'1090', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-1.6,'TLA-FP':-1.6,'TLG':1.6,'TLG-FP':1.6,'TLF':-0.8,'TLF-FP':-0.8,'TLTF':0.8,'TLTF-FP':0.8,'ML2V':1.6,'ML2H':-1.6}},
+  {name:'1091', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-1.6,'TLA-FP':-1.6,'TLG':-1.6,'TLG-FP':-1.6,'TLF':-0.8,'TLF-FP':-0.8,'TLTF':-0.8,'TLTF-FP':-0.8,'ML2V':1.6,'ML2H':-1.6}},
+  {name:'1101', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':1.2,'TLG-FP':1.2,'LBLC':1.2,'WLX':1,'WLX-P':1}},
+  {name:'1102', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':-1.2,'TLG-FP':-1.2,'LBLC':1.2,'WLX':1,'WLX-P':1}},
+  {name:'1103', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':1.2,'TLG-FP':1.2,'LBLC':1.2,'WLX':-1,'WLX-P':-1}},
+  {name:'1104', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':-1.2,'TLG-FP':-1.2,'LBLC':1.2,'WLX':-1,'WLX-P':-1}},
+  {name:'1105', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':1.2,'TLG-FP':1.2,'LBLC':1.2,'WLZ':1,'WLZ-P':1}},
+  {name:'1106', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':-1.2,'TLG-FP':-1.2,'LBLC':1.2,'WLZ':1,'WLZ-P':1}},
+  {name:'1107', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':1.2,'TLG-FP':1.2,'LBLC':1.2,'WLZ':-1,'WLZ-P':-1}},
+  {name:'1108', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':-1.2,'TLG-FP':-1.2,'LBLC':1.2,'WLZ':-1,'WLZ-P':-1}},
+  {name:'1201', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':3.2,'TLA-FP':3.2,'TLG':1.6,'TLG-FP':1.6,'TLF':3.2,'TLF-FP':3.2,'TLTF':1.6,'TLTF-FP':1.6}},
+  {name:'1202', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':3.2,'TLA-FP':3.2,'TLG':-1.6,'TLG-FP':-1.6,'TLF':3.2,'TLF-FP':3.2,'TLTF':-1.6,'TLTF-FP':-1.6}},
+  {name:'1203', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-3.2,'TLA-FP':-3.2,'TLG':1.6,'TLG-FP':1.6,'TLF':-3.2,'TLF-FP':-3.2,'TLTF':1.6,'TLTF-FP':1.6}},
+  {name:'1204', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss+':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-3.2,'TLA-FP':-3.2,'TLG':-1.6,'TLG-FP':-1.6,'TLF':-3.2,'TLF-FP':-3.2,'TLTF':-1.6,'TLTF-FP':-1.6}},
+  {name:'1205', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':3.2,'TLA-FP':3.2,'TLG':1.6,'TLG-FP':1.6,'TLF':3.2,'TLF-FP':3.2,'TLTF':1.6,'TLTF-FP':1.6}},
+  {name:'1206', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':3.2,'TLA-FP':3.2,'TLG':-1.6,'TLG-FP':-1.6,'TLF':3.2,'TLF-FP':3.2,'TLTF':-1.6,'TLTF-FP':-1.6}},
+  {name:'1207', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-3.2,'TLA-FP':-3.2,'TLG':1.6,'TLG-FP':1.6,'TLF':-3.2,'TLF-FP':-3.2,'TLTF':1.6,'TLTF-FP':1.6}},
+  {name:'1208', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1.6,'TLss-':1.2,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.6,'LLofp':1.6,'LLo-e':1.6,'TLA':-3.2,'TLA-FP':-3.2,'TLG':-1.6,'TLG-FP':-1.6,'TLF':-3.2,'TLF-FP':-3.2,'TLTF':-1.6,'TLTF-FP':-1.6}},
+  {name:'1301', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':1.2,'TLG-FP':1.2,'EOHX':2,'EOHZ':0.9,'EOVY':1}},
+  {name:'1302', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':-1.2,'TLG-FP':-1.2,'EOHX':2,'EOHZ':-0.9,'EOVY':1}},
+  {name:'1303', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':1.2,'TLG-FP':1.2,'EOHX':-2,'EOHZ':0.9,'EOVY':1}},
+  {name:'1304', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':-1.2,'TLG-FP':-1.2,'EOHX':-2,'EOHZ':-0.9,'EOVY':1}},
+  {name:'1305', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':1.2,'TLG-FP':1.2,'EOHX':0.6,'EOHZ':3,'EOVY':1}},
+  {name:'1306', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':1.2,'TLA-FP':1.2,'TLG':-1.2,'TLG-FP':-1.2,'EOHX':0.6,'EOHZ':-3,'EOVY':1}},
+  {name:'1307', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':1.2,'TLG-FP':1.2,'EOHX':-0.6,'EOHZ':3,'EOVY':1}},
+  {name:'1308', type:'ultimate', soilFactor:1.2, factors:{'DLs':1.2,'DLnm':1.2,'DLnsi':1.2,'LL':1,'DLe-p':1.2,'DLefp':1.2,'DLe-e':1.2,'LLo-p':1.2,'LLofp':1.2,'LLo-e':1.2,'TLA':-1.2,'TLA-FP':-1.2,'TLG':-1.2,'TLG-FP':-1.2,'EOHX':-0.6,'EOHZ':-3,'EOVY':1}},
+  {name:'1309', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':2,'EEHZ':0.9,'EEVY':-1}},
+  {name:'1310', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':2,'EEHZ':-0.9,'EEVY':-1}},
+  {name:'1311', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':-2,'EEHZ':0.9,'EEVY':-1}},
+  {name:'1312', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':-2,'EEHZ':-0.9,'EEVY':-1}},
+  {name:'1313', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':0.6,'EEHZ':3,'EEVY':-1}},
+  {name:'1314', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':0.6,'EEHZ':-3,'EEVY':-1}},
+  {name:'1315', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':-0.6,'EEHZ':3,'EEVY':-1}},
+  {name:'1316', type:'ultimate', soilFactor:0.9, factors:{'DLs':0.9,'DLnm':0.9,'DLnsi':0.9,'DLe-p':0.9,'DLefp':0.9,'DLe-e':0.9,'EEHX':-0.6,'EEHZ':-3,'EEVY':-1}},
+  {name:'2001', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'TLss+':1,'DLe-p':1,'DLe-e':1}},
+  {name:'2002', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'TLss-':1,'DLe-p':1,'DLe-e':1}},
+  {name:'2003', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLe-e':1,'WLX':0.625,'WLX-P':0.625}},
+  {name:'2004', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLe-e':1,'WLX':-0.625,'WLX-P':-0.625}},
+  {name:'2005', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLe-e':1,'WLZ':0.625,'WLZ-P':0.625}},
+  {name:'2006', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLe-e':1,'WLZ':-0.625,'WLZ-P':-0.625}},
+  {name:'2007', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'DLe-p':0.6,'DLe-e':0.6,'WLX':0.625,'WLX-P':0.625}},
+  {name:'2008', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'DLe-p':0.6,'DLe-e':0.6,'WLX':-0.625,'WLX-P':-0.625}},
+  {name:'2009', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'DLe-p':0.6,'DLe-e':0.6,'WLZ':0.625,'WLZ-P':0.625}},
+  {name:'2010', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'DLe-p':0.6,'DLe-e':0.6,'WLZ':-0.625,'WLZ-P':-0.625}},
+  {name:'2011', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'TLF':0.5,'TLF-FP':0.5,'TLTF':0.5,'TLTF-FP':0.5}},
+  {name:'2012', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'TLF':0.5,'TLF-FP':0.5,'TLTF':-0.5,'TLTF-FP':-0.5}},
+  {name:'2013', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':0.5,'TLTF-FP':0.5}},
+  {name:'2014', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':-0.5,'TLTF-FP':-0.5}},
+  {name:'2015', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'TLF':0.5,'TLF-FP':0.5,'TLTF':0.5,'TLTF-FP':0.5}},
+  {name:'2016', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'TLF':0.5,'TLF-FP':0.5,'TLTF':-0.5,'TLTF-FP':-0.5}},
+  {name:'2017', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':0.5,'TLTF-FP':0.5}},
+  {name:'2018', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':-0.5,'TLTF-FP':-0.5}},
+  {name:'2019', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1}},
+  {name:'2020', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1}},
+  {name:'2021', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'WLX':0.625,'WLX-P':0.625}},
+  {name:'2022', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'WLX':0.625,'WLX-P':0.625}},
+  {name:'2023', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'WLX':-0.625,'WLX-P':-0.625}},
+  {name:'2024', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'WLX':-0.625,'WLX-P':-0.625}},
+  {name:'2025', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'WLZ':0.625,'WLZ-P':0.625}},
+  {name:'2026', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'WLZ':0.625,'WLZ-P':0.625}},
+  {name:'2027', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'WLZ':-0.625,'WLZ-P':-0.625}},
+  {name:'2028', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'WLZ':-0.625,'WLZ-P':-0.625}},
+  {name:'2029', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'WLX':0.47,'WLX-P':0.47}},
+  {name:'2030', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'WLX':0.47,'WLX-P':0.47}},
+  {name:'2031', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'WLX':-0.47,'WLX-P':-0.47}},
+  {name:'2032', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'WLX':-0.47,'WLX-P':-0.47}},
+  {name:'2033', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'WLZ':0.47,'WLZ-P':0.47}},
+  {name:'2034', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'WLZ':0.47,'WLZ-P':0.47}},
+  {name:'2035', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'WLZ':-0.47,'WLZ-P':-0.47}},
+  {name:'2036', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'WLZ':-0.47,'WLZ-P':-0.47}},
+  {name:'2037', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'DLt-p':1,'DLt-fp':1,'DLt-e':1}},
+  {name:'2038', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'DLt-p':1,'DLt-fp':1,'DLt-e':1,'WLX':0.32,'WLX-P':0.32}},
+  {name:'2039', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'DLt-p':1,'DLt-fp':1,'DLt-e':1,'WLX':-0.32,'WLX-P':-0.32}},
+  {name:'2040', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'DLt-p':1,'DLt-fp':1,'DLt-e':1,'WLZ':0.32,'WLZ-P':0.32}},
+  {name:'2041', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'DLt-p':1,'DLt-fp':1,'DLt-e':1,'WLZ':-0.32,'WLZ-P':-0.32}},
+  {name:'2042', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'DLt-p':1,'DLt-fp':1,'DLt-e':1,'WLX':0.24,'WLX-P':0.24}},
+  {name:'2043', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'DLt-p':1,'DLt-fp':1,'DLt-e':1,'WLX':-0.24,'WLX-P':-0.24}},
+  {name:'2044', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'DLt-p':1,'DLt-fp':1,'DLt-e':1,'WLZ':0.24,'WLZ-P':0.24}},
+  {name:'2045', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'DLt-p':1,'DLt-fp':1,'DLt-e':1,'WLZ':-0.24,'WLZ-P':-0.24}},
+  {name:'2046', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'WLX':0.24}},
+  {name:'2047', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'WLX':-0.24}},
+  {name:'2048', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'WLZ':0.24}},
+  {name:'2049', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'WLZ':-0.24}},
+  {name:'2050', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'WLX':0.32}},
+  {name:'2051', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'WLX':-0.32}},
+  {name:'2052', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'WLZ':0.32}},
+  {name:'2053', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'WLZ':-0.32}},
+  {name:'2054', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'EOHX':0.7,'EOHZ':0.21,'EOVY':0.7}},
+  {name:'2055', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'EOHX':0.7,'EOHZ':-0.21,'EOVY':0.7}},
+  {name:'2056', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'EOHX':-0.7,'EOHZ':0.21,'EOVY':0.7}},
+  {name:'2057', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'EOHX':-0.7,'EOHZ':-0.21,'EOVY':0.7}},
+  {name:'2058', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'EOHX':0.21,'EOHZ':0.7,'EOVY':0.7}},
+  {name:'2059', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'EOHX':0.21,'EOHZ':-0.7,'EOVY':0.7}},
+  {name:'2060', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'EOHX':-0.21,'EOHZ':0.7,'EOVY':0.7}},
+  {name:'2061', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'EOHX':-0.21,'EOHZ':-0.7,'EOVY':0.7}},
+  {name:'2062', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'EOHX':0.525,'EOHZ':0.158,'EOVY':0.525}},
+  {name:'2063', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'EOHX':0.525,'EOHZ':-0.158,'EOVY':0.525}},
+  {name:'2064', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'EOHX':-0.525,'EOHZ':0.158,'EOVY':0.525}},
+  {name:'2065', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'EOHX':-0.525,'EOHZ':-0.158,'EOVY':0.525}},
+  {name:'2066', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'EOHX':0.158,'EOHZ':0.525,'EOVY':0.525}},
+  {name:'2067', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'EOHX':0.158,'EOHZ':-0.525,'EOVY':0.525}},
+  {name:'2068', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'EOHX':-0.158,'EOHZ':0.525,'EOVY':0.525}},
+  {name:'2069', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':0.75,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'EOHX':-0.158,'EOHZ':-0.525,'EOVY':0.525}},
+  {name:'2070', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'DLe-p':0.6,'DLe-e':0.6,'EEHX':0.7,'EEHZ':0.21,'EEVY':-0.7}},
+  {name:'2071', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'DLe-p':0.6,'DLe-e':0.6,'EEHX':0.7,'EEHZ':-0.21,'EEVY':-0.7}},
+  {name:'2072', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'DLe-p':0.6,'DLe-e':0.6,'EEHX':-0.7,'EEHZ':0.21,'EEVY':-0.7}},
+  {name:'2073', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'DLe-p':0.6,'DLe-e':0.6,'EEHX':-0.7,'EEHZ':-0.21,'EEVY':-0.7}},
+  {name:'2074', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'DLe-p':0.6,'DLe-e':0.6,'EEHX':0.21,'EEHZ':0.7,'EEVY':-0.7}},
+  {name:'2075', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'DLe-p':0.6,'DLe-e':0.6,'EEHX':0.21,'EEHZ':-0.7,'EEVY':-0.7}},
+  {name:'2076', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'DLe-p':0.6,'DLe-e':0.6,'EEHX':-0.21,'EEHZ':0.7,'EEVY':-0.7}},
+  {name:'2077', type:'elastic', soilFactor:0.6, factors:{'DLs':0.6,'DLnm':0.6,'DLnsi':0.6,'DLe-p':0.6,'DLe-e':0.6,'EEHX':-0.21,'EEHZ':-0.7,'EEVY':-0.7}},
+  {name:'2078', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'TLF':0.5,'TLF-FP':0.5,'TLTF':0.5,'TLTF-FP':0.5,'PSVX':1,'PSVZ':1,'PSVY':1}},
+  {name:'2079', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'TLF':0.5,'TLF-FP':0.5,'TLTF':-0.5,'TLTF-FP':-0.5,'PSVX':1,'PSVZ':-1,'PSVY':1}},
+  {name:'2080', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':0.5,'TLTF-FP':0.5,'PSVX':-1,'PSVZ':1,'PSVY':1}},
+  {name:'2081', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':-0.5,'TLTF-FP':-0.5,'PSVX':-1,'PSVZ':-1,'PSVY':1}},
+  {name:'2082', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'TLF':0.5,'TLF-FP':0.5,'TLTF':0.5,'TLTF-FP':0.5,'PSVX':1,'PSVZ':1,'PSVY':1}},
+  {name:'2083', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'TLF':0.5,'TLF-FP':0.5,'TLTF':-0.5,'TLTF-FP':-0.5,'PSVX':1,'PSVZ':-1,'PSVY':1}},
+  {name:'2084', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':0.5,'TLTF-FP':0.5,'PSVX':-1,'PSVZ':1,'PSVY':1}},
+  {name:'2085', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':-0.5,'TLTF-FP':-0.5,'PSVX':-1,'PSVZ':-1,'PSVY':1}},
+  {name:'2086', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'TLF':0.5,'TLF-FP':0.5,'TLTF':0.5,'TLTF-FP':0.5,'ML1V':1,'ML1H':1}},
+  {name:'2087', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'TLF':0.5,'TLF-FP':0.5,'TLTF':-0.5,'TLTF-FP':-0.5,'ML1V':1,'ML1H':1}},
+  {name:'2088', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':0.5,'TLTF-FP':0.5,'ML1V':1,'ML1H':1}},
+  {name:'2089', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':-0.5,'TLTF-FP':-0.5,'ML1V':1,'ML1H':1}},
+  {name:'2090', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'TLF':0.5,'TLF-FP':0.5,'TLTF':0.5,'TLTF-FP':0.5,'ML1V':1,'ML1H':-1}},
+  {name:'2091', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'TLF':0.5,'TLF-FP':0.5,'TLTF':-0.5,'TLTF-FP':-0.5,'ML1V':1,'ML1H':-1}},
+  {name:'2092', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':0.5,'TLTF-FP':0.5,'ML1V':1,'ML1H':-1}},
+  {name:'2093', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':-0.5,'TLTF-FP':-0.5,'ML1V':1,'ML1H':-1}},
+  {name:'2094', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'TLF':0.5,'TLF-FP':0.5,'TLTF':0.5,'TLTF-FP':0.5,'ML2V':1,'ML2H':1}},
+  {name:'2095', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'TLF':0.5,'TLF-FP':0.5,'TLTF':-0.5,'TLTF-FP':-0.5,'ML2V':1,'ML2H':1}},
+  {name:'2096', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':0.5,'TLTF-FP':0.5,'ML2V':1,'ML2H':1}},
+  {name:'2097', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss+':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':-0.5,'TLTF-FP':-0.5,'ML2V':1,'ML2H':1}},
+  {name:'2098', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':1,'TLG-FP':1,'TLF':0.5,'TLF-FP':0.5,'TLTF':0.5,'TLTF-FP':0.5,'ML2V':1,'ML2H':-1}},
+  {name:'2099', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':1,'TLA-FP':1,'TLG':-1,'TLG-FP':-1,'TLF':0.5,'TLF-FP':0.5,'TLTF':-0.5,'TLTF-FP':-0.5,'ML2V':1,'ML2H':-1}},
+  {name:'2100', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':1,'TLG-FP':1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':0.5,'TLTF-FP':0.5,'ML2V':1,'ML2H':-1}},
+  {name:'2101', type:'elastic', soilFactor:1, factors:{'DLs':1,'DLnm':1,'DLnsi':1,'LL':1,'TLss-':1,'DLe-p':1,'DLefp':1,'DLe-e':1,'LLo-p':1,'LLofp':1,'LLo-e':1,'TLA':-1,'TLA-FP':-1,'TLG':-1,'TLG-FP':-1,'TLF':-0.5,'TLF-FP':-0.5,'TLTF':-0.5,'TLTF-FP':-0.5,'ML2V':1,'ML2H':-1}},
+];
+
+// ---------------- UI: tabs ----------------
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('section.tab').forEach(s=>s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='results') renderResults();
+  });
+});
+
+// ---------------- UI: load case table ----------------
+function renderLoadCases(){
+  const tbody=document.querySelector('#loadCaseTable tbody');
+  tbody.innerHTML='';
+  loadCases.forEach((lc,idx)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td class="name-cell"><input class="wide" value="${lc.name}" data-idx="${idx}" data-f="name"></td>
+      <td><input type="number" value="${lc.Fx}" data-idx="${idx}" data-f="Fx"></td>
+      <td><input type="number" value="${lc.Fy}" data-idx="${idx}" data-f="Fy"></td>
+      <td><input type="number" value="${lc.Fz}" data-idx="${idx}" data-f="Fz"></td>
+      <td><input type="number" value="${lc.Mx}" data-idx="${idx}" data-f="Mx"></td>
+      <td><input type="number" value="${lc.My}" data-idx="${idx}" data-f="My"></td>
+      <td><button class="btn danger" data-del="${idx}">×</button></td>`;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input',e=>{
+      const i=+e.target.dataset.idx, f=e.target.dataset.f;
+      const oldName=loadCases[i].name;
+      loadCases[i][f]= f==='name'? e.target.value : parseFloat(e.target.value)||0;
+      if(f==='name'){
+        combos.forEach(c=>{ if(oldName in c.factors){ c.factors[e.target.value]=c.factors[oldName]; delete c.factors[oldName]; } });
+        renderComboTable();
+      }
+    });
+  });
+  tbody.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',e=>{
+    const i=+e.target.dataset.del;
+    const name=loadCases[i].name;
+    loadCases.splice(i,1);
+    combos.forEach(c=>delete c.factors[name]);
+    renderLoadCases(); renderComboTable();
+  }));
+}
+document.getElementById('addLoadCase').addEventListener('click',()=>{
+  loadCases.push({name:'LC'+(loadCases.length+1),Fx:0,Fy:0,Fz:0,Mx:0,My:0});
+  renderLoadCases(); renderComboTable();
+});
+
+// ---------------- UI: combo table ----------------
+function renderComboTable(){
+  const headRow=document.getElementById('comboHeadRow');
+  headRow.innerHTML='<th>LC#</th><th>Type</th><th>Soil&amp;Fdn factor</th>'+
+    loadCases.map(lc=>`<th>${lc.name}</th>`).join('')+'<th></th>';
+  const tbody=document.querySelector('#comboTable tbody');
+  tbody.innerHTML='';
+  combos.forEach((c,idx)=>{
+    const tr=document.createElement('tr');
+    let html=`<td class="name-cell"><input class="wide" value="${c.name}" data-idx="${idx}" data-f="name"></td>
+      <td><select data-idx="${idx}" data-f="type">
+        <option value="elastic" ${c.type==='elastic'?'selected':''}>elastic</option>
+        <option value="ultimate" ${c.type==='ultimate'?'selected':''}>ultimate</option>
+      </select></td>
+      <td><input type="number" step="0.1" value="${c.soilFactor}" data-idx="${idx}" data-f="soilFactor"></td>`;
+    loadCases.forEach(lc=>{
+      const v=c.factors[lc.name]||'';
+      html+=`<td><input type="number" step="0.05" value="${v}" data-idx="${idx}" data-lc="${lc.name}"></td>`;
+    });
+    html+=`<td><button class="btn danger" data-del="${idx}">×</button></td>`;
+    tr.innerHTML=html;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('select,input[data-f]').forEach(inp=>{
+    inp.addEventListener('input',e=>{
+      const i=+e.target.dataset.idx, f=e.target.dataset.f;
+      combos[i][f]= f==='soilFactor'? (parseFloat(e.target.value)||0) : e.target.value;
+    });
+  });
+  tbody.querySelectorAll('input[data-lc]').forEach(inp=>{
+    inp.addEventListener('input',e=>{
+      const i=+e.target.dataset.idx, lc=e.target.dataset.lc;
+      const v=parseFloat(e.target.value);
+      if(v) combos[i].factors[lc]=v; else delete combos[i].factors[lc];
+    });
+  });
+  tbody.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',e=>{
+    combos.splice(+e.target.dataset.del,1); renderComboTable();
+  }));
+}
+document.getElementById('addCombo').addEventListener('click',()=>{
+  combos.push({name:'LC'+(combos.length+1),type:'ultimate',soilFactor:1.2,factors:{}});
+  renderComboTable();
+});
+
+// ---------------- geometry helper ----------------
+function getGeom(){
+  const v=id=>parseFloat(document.getElementById(id).value);
+  return {
+    Lx:v('Lx'),Ly:v('Ly'),Hf:v('Hf'),Hs:v('Hs'),qa:v('qa'),gammaS:v('gammaS'),gammaC:v('gammaC'),
+    mu:v('mu'),sfOT:v('sfOT'),sfSL:v('sfSL'),
+    pedDx:v('pedDx'),pedDy:v('pedDy'),Hp:v('Hp'),pedEx:v('pedEx'),pedEy:v('pedEy'),Kfac:v('Kfac'),
+    fc:v('fc'),fy:v('fy'),coverF:v('coverF'),coverP:v('coverP'),
+    barDiaF:+document.getElementById('barDiaF').value,
+    pedRho:v('pedRho'), barDiaP:+document.getElementById('barDiaP').value
+  };
+}
+
+// ---------------- MAIN ANALYSIS ----------------
+function runAnalysis(){
+  const g=getGeom();
+  const Area=g.Lx*g.Ly, Zx=g.Lx*g.Ly*g.Ly/6, Zy=g.Ly*g.Lx*g.Lx/6;
+  const pedArea=(g.pedDx/1000)*(g.pedDy/1000);
+  const footingWt=Area*g.Hf*g.gammaC;
+  const soilWt=(Area-pedArea)*g.Hs*g.gammaS;
+  const lcMap={}; loadCases.forEach(lc=>lcMap[lc.name]=lc);
+
+  const rows=combos.map(c=>{
+    const raw=loadCombo(lcMap,c.factors);
+    const selfW=c.soilFactor*(footingWt+soilWt);
+    const t=deriveTotal(raw,g.Hf,g.Hp,g.pedEx/1000,g.pedEy/1000,selfW);
+    const bearing=soilBearing4(t.Fz,t.sumMx,t.sumMy,Area,Zx,Zy);
+    let tension=null;
+    if(bearing.min<0){
+      const ex=Math.abs(t.sumMy/t.Fz), ey=Math.abs(t.sumMx/t.Fz);
+      const exLx=ex/g.Lx, eyLy=ey/g.Ly;
+      const C3=getC3(exLx,eyLy);
+      const sigmaP=(t.Fz/Area)*C3;
+      tension={ex,ey,exLx,eyLy,C3,sigmaP,ok:sigmaP<=g.qa};
+    }
+    const otx = t.sumMx!==0 ? (t.Fz*g.Ly/2)/Math.abs(t.sumMx) : Infinity;
+    const oty = t.sumMy!==0 ? (t.Fz*g.Lx/2)/Math.abs(t.sumMy) : Infinity;
+    const So=Math.sqrt(t.Fx*t.Fx+t.Fy*t.Fy);
+    const Sr=t.Fz*g.mu;
+    const slideRatio = So!==0? Sr/So : Infinity;
+    // one-way (per-axis) pressures for governing-case search
+    const sx1=t.Fz/Area+t.sumMx/Zx, sx2=t.Fz/Area-t.sumMx/Zx;
+    const sy1=t.Fz/Area+t.sumMy/Zy, sy2=t.Fz/Area-t.sumMy/Zy;
+    return {c,raw,t,bearing,tension,otx,oty,So,Sr,slideRatio,
+      sxMax:Math.max(sx1,sx2), syMax:Math.max(sy1,sy2)};
+  });
+
+  return {g,Area,Zx,Zy,footingWt,soilWt,rows};
+}
+
+function fmt(n,d=2){ return isFinite(n)? Number(n).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}) : '∞'; }
+
+function runFullDesign(A, ultimate, elastic){
+  const out = {ok:true, has:ultimate.length>0};
+  if (ultimate.length===0) return out;
+
+  let govX=ultimate[0], govY=ultimate[0];
+  ultimate.forEach(r=>{ if(r.sxMax>govX.sxMax) govX=r; if(r.syMax>govY.syMax) govY=r; });
+  const d1=A.g.Hf*1000-A.g.coverF-A.g.barDiaF/2;
+  const d2=A.g.Hf*1000-A.g.coverF-1.5*A.g.barDiaF;
+
+  function designAxis(gov, sigmaMax, spanFull_mm, cDim_mm, otherFull_mm, d_mm, soilFactor){
+    const ds=(spanFull_mm - cDim_mm)/2/1000;
+    const dM=d_mm/1000;
+    const shear1=sigmaMax*ds, arm1=ds/2, moment1=shear1*arm1;
+    const shearAtD=sigmaMax*Math.max(ds-dM,0);
+    const sr=soilFactor*(A.g.gammaS*A.g.Hs+A.g.gammaC*A.g.Hf);
+    const S1=sr*Math.max(ds-dM,0), M1=sr*ds*ds/2;
+    const Vu=Math.max(shearAtD-S1,0), Mu=Math.max(moment1-M1,0);
+    const flex=flexureOmega(Mu,A.g.fc,otherFull_mm,d_mm);
+    const rho= flex.error? null : flex.w*A.g.fc/A.g.fy;
+    const rhoMin1=Math.sqrt(A.g.fc)/4/A.g.fy, rhoMin2=1.4/A.g.fy, rhoMin=Math.max(rhoMin1,rhoMin2);
+    const rhoUse=Math.max(rho||0, rhoMin);
+    const govByMin = (rho||0) < rhoMin;
+    const As=rhoUse*otherFull_mm*d_mm;
+    const phiVc=oneWayShearCap(A.g.fc,otherFull_mm,d_mm);
+    const shearOK=Vu<=phiVc;
+    return {gov,sigmaMax,spanFull_mm,cDim_mm,otherFull_mm,d_mm,soilFactor,ds,dM,shear1,arm1,moment1,
+      shearAtD,sr,S1,M1,Vu,Mu,flex,rho,rhoMin,rhoUse,govByMin,As,phiVc,shearOK};
+  }
+  out.d1=d1; out.d2=d2;
+  out.dx=designAxis(govX,govX.sxMax,A.g.Lx*1000,A.g.pedDx,A.g.Ly*1000,d1,govX.c.soilFactor);
+  out.dy=designAxis(govY,govY.syMax,A.g.Ly*1000,A.g.pedDy,A.g.Lx*1000,d2,govY.c.soilFactor);
+  out.govX=govX; out.govY=govY;
+  if(!out.dx.shearOK || !out.dy.shearOK || out.dx.flex.error || out.dy.flex.error) out.ok=false;
+
+  let govP=ultimate[0]; ultimate.forEach(r=>{ if(r.t.Fz>govP.t.Fz) govP=r; });
+  const dAvg=(d1+d2)/2;
+  const b0=2*(A.g.pedDx+dAvg)+2*(A.g.pedDy+dAvg);
+  const areaIn=(A.g.pedDx+dAvg)*(A.g.pedDy+dAvg)/1e6;
+  const qu=govP.t.Fz/A.Area;
+  const Vpunch=Math.max(govP.t.Fz-qu*areaIn,0);
+  const phiVcPunch=twoWayShearCap(A.g.fc,b0,dAvg);
+  const punchOK=Vpunch<=phiVcPunch;
+  if(!punchOK) out.ok=false;
+  Object.assign(out, {govP,dAvg,b0,areaIn,qu,Vpunch,phiVcPunch,punchOK});
+
+  function crackForAxis(gov,sigmaMax,spanFull_mm,cDim_mm,otherFull_mm,d_mm,soilFactor,As_mm2){
+    const ds=(spanFull_mm-cDim_mm)/2/1000, dM=d_mm/1000;
+    const shear1=sigmaMax*ds, arm1=ds/2, moment1=shear1*arm1;
+    const sr=soilFactor*(A.g.gammaS*A.g.Hs+A.g.gammaC*A.g.Hf);
+    const M1=sr*ds*ds/2;
+    const Ma=Math.max(moment1-M1,0);
+    const nT=Math.max(2,Math.round(As_mm2/(Math.PI/4*A.g.barDiaF*A.g.barDiaF)));
+    const cw=crackWidth({Ma_kNm:Ma,H_mm:A.g.Hf*1000,B_mm:otherFull_mm,fc_MPa:A.g.fc,cover_mm:A.g.coverF,
+      tDia:A.g.barDiaF,nT,cDia:A.g.barDiaF*0.64,nC:nT});
+    return {gov,ds,dM,shear1,arm1,moment1,sr,M1,Ma,nT,cw};
+  }
+  const wMax=0.15;
+  out.wMax=wMax;
+  if (elastic.length===0){
+    out.crX=null; out.crY=null; out.crXOK=true; out.crYOK=true; out.govXe=null; out.govYe=null;
+  } else {
+    let govXe=elastic[0], govYe=elastic[0];
+    elastic.forEach(r=>{ if(r.sxMax>govXe.sxMax) govXe=r; if(r.syMax>govYe.syMax) govYe=r; });
+    out.govXe=govXe; out.govYe=govYe;
+    out.crX=crackForAxis(govXe,govXe.sxMax,A.g.Lx*1000,A.g.pedDx,A.g.Ly*1000,d1,govXe.c.soilFactor,out.dx.As);
+    out.crY=crackForAxis(govYe,govYe.syMax,A.g.Ly*1000,A.g.pedDy,A.g.Lx*1000,d2,govYe.c.soilFactor,out.dy.As);
+    out.crXOK=out.crX.cw.Wcrk<=wMax; out.crYOK=out.crY.cw.Wcrk<=wMax;
+    if(!out.crXOK||!out.crYOK) out.ok=false;
+  }
+
+  let govPed=ultimate[0];
+  ultimate.forEach(r=>{ if(Math.abs(r.t.sumMx)+Math.abs(r.t.sumMy) > Math.abs(govPed.t.sumMx)+Math.abs(govPed.t.sumMy)) govPed=r; });
+  const PuN=Math.abs(govPed.t.Fz)*1000;
+  const AsHalf=A.g.pedRho/2*(A.g.pedDx*A.g.pedDy);
+  const phiSolve=solvePhiPn(PuN,A.g.pedDy,A.g.pedDx,A.g.coverP,A.g.barDiaP,AsHalf,A.g.fc,A.g.fy);
+  const phiP=phiSolve.phi, PnN=phiSolve.Pn_N;
+  const MuxNmm=Math.abs(govPed.t.sumMx)*1e6, MuyNmm=Math.abs(govPed.t.sumMy)*1e6;
+  const MnxNmm=MuxNmm/phiP, MnyNmm=MuyNmm/phiP;
+  const mnoxFull=columnMnFull(PnN,A.g.pedDy,A.g.pedDx,A.g.coverP,A.g.barDiaP,AsHalf,A.g.fc,A.g.fy);
+  const mnoyFull=columnMnFull(PnN,A.g.pedDx,A.g.pedDy,A.g.coverP,A.g.barDiaP,AsHalf,A.g.fc,A.g.fy);
+  const Mnox=mnoxFull.Mn, Mnoy=mnoyFull.Mn;
+  const rx=MnxNmm/Mnox, ry=MnyNmm/Mnoy;
+  const bres=solveBresler(Math.min(rx,0.999),Math.min(ry,0.999));
+  const breslerSum=Math.pow(rx,bres.alpha)+Math.pow(ry,bres.alpha);
+  const bresPass=breslerSum<=1.0;
+  if(!bresPass) out.ok=false;
+  Object.assign(out, {govPed,PuN,AsHalf,phiSolve,phiP,PnN,MuxNmm,MuyNmm,MnxNmm,MnyNmm,
+    mnoxFull,mnoyFull,Mnox,Mnoy,rx,ry,bres,breslerSum,bresPass});
+  return out;
+}
+
+function renderResults(){
+  const A=runAnalysis();
+  const root=document.getElementById('resultsRoot');
+  const elastic=A.rows.filter(r=>r.c.type==='elastic');
+  const ultimate=A.rows.filter(r=>r.c.type==='ultimate');
+  const design=runFullDesign(A, ultimate, elastic);
+  let allPass=design.has? design.ok : true;
+
+  // ---- 1. Load summary ----
+  let html=`<h2 class="h">Load summary (all combinations)</h2>
+  <div class="scroll-x"><table class="results"><thead><tr>
+  <th>LC#</th><th>Type</th><th>Fz (kN)</th><th>ΣMx</th><th>ΣMy</th><th>σmax (elastic)</th><th>OT x</th><th>OT y</th><th>Sliding</th>
+  </tr></thead><tbody>`;
+  A.rows.forEach(r=>{
+    html+=`<tr><td>${r.c.name}</td><td>${r.c.type}</td>
+      <td class="num">${fmt(r.t.Fz)}</td><td class="num">${fmt(r.t.sumMx)}</td><td class="num">${fmt(r.t.sumMy)}</td>
+      <td class="num">${fmt(r.bearing.max)}</td>
+      <td class="num">${fmt(r.otx,2)}</td><td class="num">${fmt(r.oty,2)}</td><td class="num">${fmt(r.slideRatio,2)}</td></tr>`;
+  });
+  html+='</tbody></table></div>';
+
+  // ---- 2. Soil bearing check (elastic) ----
+  html+=`<h2 class="h">Soil bearing check (elastic combinations)</h2>
+  <div class="scroll-x"><table class="results"><thead><tr>
+  <th>LC#</th><th>σ1</th><th>σ2</th><th>σ3</th><th>σ4</th><th>σmax</th><th>Allow.</th><th>Tension case</th><th></th>
+  </tr></thead><tbody>`;
+  elastic.forEach(r=>{
+    let pass, tensionCell='—';
+    if(r.tension){
+      pass=r.tension.ok;
+      tensionCell=`C3=${fmt(r.tension.C3,2)} → σ'max=${fmt(r.tension.sigmaP,1)} kPa`;
+    } else {
+      pass = r.bearing.max<=A.g.qa;
+    }
+    if(!pass) allPass=false;
+    html+=`<tr><td>${r.c.name}</td>
+      <td class="num">${fmt(r.bearing.s1,1)}</td><td class="num">${fmt(r.bearing.s2,1)}</td>
+      <td class="num">${fmt(r.bearing.s3,1)}</td><td class="num">${fmt(r.bearing.s4,1)}</td>
+      <td class="num">${fmt(r.bearing.max,1)}</td><td class="num">${fmt(A.g.qa,1)}</td>
+      <td>${tensionCell}</td>
+      <td><span class="tag ${pass?'pass':'fail'}">${pass?'PASS':'FAIL'}</span></td></tr>`;
+  });
+  html+='</tbody></table></div>';
+
+  // ---- 3. Stability ----
+  html+=`<h2 class="h">Overturning &amp; sliding check (elastic combinations)</h2>
+  <div class="scroll-x"><table class="results"><thead><tr>
+  <th>LC#</th><th>Mrx/Mx</th><th>Mry/My</th><th>S.F.</th><th>OT</th><th>Sr/So</th><th>S.F.</th><th>Sliding</th>
+  </tr></thead><tbody>`;
+  elastic.forEach(r=>{
+    const otPass = r.otx>=A.g.sfOT && r.oty>=A.g.sfOT;
+    const slPass = r.slideRatio>=A.g.sfSL;
+    if(!otPass||!slPass) allPass=false;
+    html+=`<tr><td>${r.c.name}</td><td class="num">${fmt(r.otx,2)}</td><td class="num">${fmt(r.oty,2)}</td>
+      <td class="num">${fmt(A.g.sfOT,1)}</td><td><span class="tag ${otPass?'pass':'fail'}">${otPass?'PASS':'FAIL'}</span></td>
+      <td class="num">${fmt(r.slideRatio,2)}</td><td class="num">${fmt(A.g.sfSL,1)}</td>
+      <td><span class="tag ${slPass?'pass':'fail'}">${slPass?'PASS':'FAIL'}</span></td></tr>`;
+  });
+  html+='</tbody></table></div>';
+
+  // ---- 4. Footing design (ultimate, governing case per axis) ----
+  html+=`<h2 class="h">Footing design (ultimate combinations)</h2>`;
+  if(!design.has){
+    html+='<p class="note">No ultimate combinations defined.</p>';
+  } else {
+    const {govX,govY,dx,dy,govP,Vpunch,phiVcPunch,punchOK,crX,crY,crXOK,crYOK,wMax,
+      phiSolve,phiP,PnN,rx,ry,bres,breslerSum,bresPass,govPed}=design;
+
+    html+=`<div class="two-col">
+      <div><h3 style="font-size:12.5px;margin:0 0 6px;">X-axis design (governing: ${govX.c.name}, σmax=${fmt(govX.sxMax,1)} kPa)</h3>
+        <table class="results">
+        <tr><td>Vu</td><td class="num">${fmt(dx.Vu)} kN</td></tr>
+        <tr><td>φVc</td><td class="num">${fmt(dx.phiVc)} kN</td></tr>
+        <tr><td>One-way shear</td><td><span class="tag ${dx.shearOK?'pass':'fail'}">${dx.shearOK?'PASS':'FAIL'}</span></td></tr>
+        <tr><td>Mu</td><td class="num">${fmt(dx.Mu)} kN·m</td></tr>
+        <tr><td>As required</td><td class="num">${fmt(dx.As,0)} mm²</td></tr>
+        </table>
+      </div>
+      <div><h3 style="font-size:12.5px;margin:0 0 6px;">Y-axis design (governing: ${govY.c.name}, σmax=${fmt(govY.syMax,1)} kPa)</h3>
+        <table class="results">
+        <tr><td>Vu</td><td class="num">${fmt(dy.Vu)} kN</td></tr>
+        <tr><td>φVc</td><td class="num">${fmt(dy.phiVc)} kN</td></tr>
+        <tr><td>One-way shear</td><td><span class="tag ${dy.shearOK?'pass':'fail'}">${dy.shearOK?'PASS':'FAIL'}</span></td></tr>
+        <tr><td>Mu</td><td class="num">${fmt(dy.Mu)} kN·m</td></tr>
+        <tr><td>As required</td><td class="num">${fmt(dy.As,0)} mm²</td></tr>
+        </table>
+      </div>
+    </div>`;
+
+    html+=`<h3 style="font-size:12.5px;margin:14px 0 6px;">Two-way (punching) shear (governing: ${govP.c.name})</h3>
+      <table class="results">
+      <tr><td>Vu</td><td class="num">${fmt(Vpunch)} kN</td></tr>
+      <tr><td>φVc</td><td class="num">${fmt(phiVcPunch)} kN</td></tr>
+      <tr><td>Punching shear</td><td><span class="tag ${punchOK?'pass':'fail'}">${punchOK?'PASS':'FAIL'}</span></td></tr>
+      </table>`;
+
+    html+=`<h2 class="h">Crack width check (ACI 350, Gergely-Lutz)</h2>`;
+    if(!crX){
+      html+='<p class="note">No elastic combinations defined — crack width check skipped.</p>';
+    } else {
+    html+=`<div class="two-col">
+      <table class="results"><tr><td>X-axis Wcrk</td><td class="num">${fmt(crX.cw.Wcrk,3)} mm</td>
+        <td><span class="tag ${crXOK?'pass':'fail'}">${crXOK?'PASS':'FAIL'}</span></td></tr></table>
+      <table class="results"><tr><td>Y-axis Wcrk</td><td class="num">${fmt(crY.cw.Wcrk,3)} mm</td>
+        <td><span class="tag ${crYOK?'pass':'fail'}">${crYOK?'PASS':'FAIL'}</span></td></tr></table>
+      </div><p class="note">Allowable crack width = ${wMax} mm.</p>`;
+    }
+
+    html+=`<h2 class="h">Pedestal design — biaxial (Bresler)</h2>
+      <div class="warn-box"><b>Note:</b> Mnox/Mnoy below are computed by first-principles strain-compatibility
+      (not read from a P-M interaction chart). Expect these to land within roughly 15–25% of a hand-chart-based
+      calculation for the same section — treat as indicative, and cross-check with column design software
+      before using for a stamped submission.</div>
+      <table class="results">
+      <tr><td>Governing combo</td><td>${govPed.c.name}</td></tr>
+      <tr><td>Net tensile strain εt (ACI 318-M14 21.2.2)</td><td class="num">${fmt(phiSolve.epsT,4)}</td></tr>
+      <tr><td>φ (from εt, tied column)</td><td class="num">${fmt(phiP,3)}</td></tr>
+      <tr><td>Pn (design axial)</td><td class="num">${fmt(PnN/1000,1)} kN</td></tr>
+      <tr><td>Mnx / Mnox</td><td class="num">${fmt(rx,3)}</td></tr>
+      <tr><td>Mny / Mnoy</td><td class="num">${fmt(ry,3)}</td></tr>
+      <tr><td>β (solved exactly)</td><td class="num">${fmt(bres.beta,3)}</td></tr>
+      <tr><td>α</td><td class="num">${fmt(bres.alpha,3)}</td></tr>
+      <tr><td>Bresler sum</td><td class="num">${fmt(breslerSum,3)}</td>
+        <td><span class="tag ${bresPass?'pass':'fail'}">${bresPass?'PASS':'FAIL'}</span></td></tr>
+      </table>`;
+  }
+
+  const banner=`<div class="banner ${allPass?'pass':'fail'}">${allPass?'ALL CHECKS PASS':'ONE OR MORE CHECKS FAIL'}</div>`;
+  const reportBtn=`<div style="margin-bottom:14px;"><button class="btn" id="genReportBtn">Generate detailed calculation report →</button></div>`;
+  root.innerHTML=banner+reportBtn+html;
+  document.getElementById('genReportBtn').addEventListener('click', ()=>{
+    buildDetailedReport(A, elastic, ultimate, design);
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('section.tab').forEach(s=>s.classList.remove('active'));
+    document.getElementById('tab-report').classList.add('active');
+  });
+}
+
+function step(label, formula, result){
+  return `<div class="rpt-step"><span class="lbl">${label}${formula?' = '+formula:''} =</span> ${result}</div>`;
+}
+function failBox(msg){ return `<div class="rpt-fail-detail"><b>Why it fails:</b> ${msg}</div>`; }
+
+function buildDetailedReport(A, elastic, ultimate, design){
+  const g=A.g;
+  const now=new Date().toLocaleDateString();
+  let h=`<div class="rpt-title"><h1>Detailed Calculation Report</h1>
+    <div class="sub">Isolated pedestal footing under biaxial eccentric load — ACI 318-M14, IBC 2009 / ASCE 7-05 &nbsp;·&nbsp; generated ${now}</div></div>`;
+
+  // ---- Design properties ----
+  h+=`<div class="rpt-sec"><h3>1. Design Properties &amp; Dimensions</h3>
+    ${step('Footing','Lx × Ly × Hf', `${g.Lx} × ${g.Ly} × ${g.Hf} m`)}
+    ${step('Soil above footing','Hs', `${g.Hs} m, γs = ${g.gammaS} kN/m³`)}
+    ${step('Concrete unit weight','γc', `${g.gammaC} kN/m³`)}
+    ${step('Allowable bearing capacity','qa', `${g.qa} kPa`)}
+    ${step('Pedestal','dx × dy × Hp', `${g.pedDx} × ${g.pedDy} mm × ${g.Hp} m`)}
+    ${step('Pedestal offset','ex, ey', `${g.pedEx}, ${g.pedEy} mm`)}
+    ${step("f'c",'', `${g.fc} MPa`)}
+    ${step('fy','', `${g.fy} MPa`)}
+    ${step('Footing cover / bar dia.','', `${g.coverF} mm / T${g.barDiaF}`)}
+    ${step('Pedestal cover / bar dia. / assumed ρ','', `${g.coverP} mm / T${g.barDiaP} / ${g.pedRho}`)}
+    ${step('Footing area, A','Lx × Ly', `${fmt(A.Area,2)} m²`)}
+    ${step('Zx','Lx·Ly²/6', `${fmt(A.Zx,3)} m³`)}
+    ${step('Zy','Ly·Lx²/6', `${fmt(A.Zy,3)} m³`)}
+    ${step('Footing self-weight','A·Hf·γc', `${fmt(A.footingWt,1)} kN`)}
+    ${step('Soil self-weight','(A−Aped)·Hs·γs', `${fmt(A.soilWt,1)} kN`)}
+    </div>`;
+
+  // ---- Load cases & combinations ----
+  h+=`<div class="rpt-sec"><h3>2. Primary Load Cases</h3>
+    <table class="results"><thead><tr><th>Name</th><th>Fx</th><th>Fy</th><th>Fz</th><th>Mx</th><th>My</th></tr></thead><tbody>`;
+  loadCases.forEach(lc=>{ h+=`<tr><td>${lc.name}</td><td class="num">${fmt(lc.Fx)}</td><td class="num">${fmt(lc.Fy)}</td><td class="num">${fmt(lc.Fz)}</td><td class="num">${fmt(lc.Mx)}</td><td class="num">${fmt(lc.My)}</td></tr>`; });
+  h+=`</tbody></table></div>`;
+
+  h+=`<div class="rpt-sec"><h3>3. Load Combinations — derived totals</h3>
+    <p class="note">ΣMx = Mx + Mxs + Mxe, where Mxs = Fy·(Hf+Hp) (moment by shear) and Mxe = ey·Fy (pedestal eccentricity). Same pattern for ΣMy using Fx and ex.</p>
+    <table class="results"><thead><tr><th>LC#</th><th>Type</th><th>Fx</th><th>Fy</th><th>Fz (incl. self-wt)</th><th>Mxs</th><th>Mys</th><th>ΣMx</th><th>ΣMy</th></tr></thead><tbody>`;
+  A.rows.forEach(r=>{
+    h+=`<tr><td>${r.c.name}</td><td>${r.c.type}</td><td class="num">${fmt(r.t.Fx)}</td><td class="num">${fmt(r.t.Fy)}</td>
+      <td class="num">${fmt(r.t.Fz)}</td><td class="num">${fmt(r.t.Mxs)}</td><td class="num">${fmt(r.t.Mys)}</td>
+      <td class="num">${fmt(r.t.sumMx)}</td><td class="num">${fmt(r.t.sumMy)}</td></tr>`;
+  });
+  h+=`</tbody></table></div>`;
+
+  // ---- Soil bearing, per elastic combo, full steps ----
+  h+=`<div class="rpt-sec"><h3>4. Soil Bearing Capacity Check (elastic combinations)</h3>
+    <p class="note">σ1 = Fz/A + ΣMx/Zx − ΣMy/Zy &nbsp;·&nbsp; σ2 = Fz/A − ΣMx/Zx − ΣMy/Zy &nbsp;·&nbsp; σ3 = Fz/A + ΣMx/Zx + ΣMy/Zy &nbsp;·&nbsp; σ4 = Fz/A − ΣMx/Zx + ΣMy/Zy</p>`;
+  elastic.forEach(r=>{
+    let pass, tail='';
+    h+=`<h4>LC ${r.c.name}</h4>`;
+    h+=step('Fz/A', '', `${fmt(r.t.Fz,1)} / ${fmt(A.Area,2)} = ${fmt(r.t.Fz/A.Area,2)} kPa`);
+    h+=step('σ1..σ4', '', `${fmt(r.bearing.s1,1)}, ${fmt(r.bearing.s2,1)}, ${fmt(r.bearing.s3,1)}, ${fmt(r.bearing.s4,1)} kPa`);
+    h+=step('σmax / σmin', '', `${fmt(r.bearing.max,1)} / ${fmt(r.bearing.min,1)} kPa`);
+    if(r.tension){
+      pass=r.tension.ok;
+      h+=`<p class="note">σmin &lt; 0 → tension zone. Using the C3 modification factor table (bilinear interpolation):</p>`;
+      h+=step('ex = |ΣMy/Fz|','', `${fmt(r.tension.ex,3)} m  →  ex/Lx = ${fmt(r.tension.exLx,3)}`);
+      h+=step('ey = |ΣMx/Fz|','', `${fmt(r.tension.ey,3)} m  →  ey/Ly = ${fmt(r.tension.eyLy,3)}`);
+      h+=step('C3 (table lookup)','', fmt(r.tension.C3,3));
+      h+=step("σ'max", '(Fz/A)·C3', `${fmt(r.t.Fz/A.Area,2)} × ${fmt(r.tension.C3,3)} = ${fmt(r.tension.sigmaP,1)} kPa`);
+      h+=`<div class="rpt-concl ${pass?'pass':'fail'}">Conclusion: σ'max (${fmt(r.tension.sigmaP,1)}) ${pass?'≤':'>'} allowable (${fmt(g.qa,1)}) → ${pass?'O.K':'N.G'}</div>`;
+      if(!pass) tail=failBox(`σ'max = ${fmt(r.tension.sigmaP,1)} kPa exceeds the allowable bearing capacity of ${fmt(g.qa,1)} kPa by ${fmt(r.tension.sigmaP-g.qa,1)} kPa. The load is far enough outside the footing's kern that even with the tension-zone C3 correction, the corner pressure is too high — widen the footing, reduce the eccentricity, or improve the allowable soil bearing capacity.`);
+    } else {
+      pass = r.bearing.max<=g.qa;
+      h+=`<div class="rpt-concl ${pass?'pass':'fail'}">Conclusion: σmax (${fmt(r.bearing.max,1)}) ${pass?'≤':'>'} allowable (${fmt(g.qa,1)}) → ${pass?'O.K':'N.G'}</div>`;
+      if(!pass) tail=failBox(`σmax = ${fmt(r.bearing.max,1)} kPa exceeds the allowable bearing capacity of ${fmt(g.qa,1)} kPa by ${fmt(r.bearing.max-g.qa,1)} kPa. Increase the footing plan size (Lx/Ly), reduce the applied load or moment for this combination, or confirm a higher allowable bearing capacity with geotechnical input.`);
+    }
+    h+=tail;
+  });
+  h+='</div>';
+
+  // ---- Stability ----
+  h+=`<div class="rpt-sec"><h3>5. Overturning &amp; Sliding Check (elastic combinations)</h3>
+    <p class="note">Mrx = Fz·Ly/2, Mry = Fz·Lx/2 (resisting moments). Sr = Fz·μ (resisting friction force), So = √(Fx²+Fy²).</p>`;
+  elastic.forEach(r=>{
+    const otPass = r.otx>=g.sfOT && r.oty>=g.sfOT;
+    const slPass = r.slideRatio>=g.sfSL;
+    h+=`<h4>LC ${r.c.name}</h4>`;
+    h+=step('Mrx','Fz·Ly/2', `${fmt(r.t.Fz,1)} × ${fmt(g.Ly,2)}/2 = ${fmt(r.t.Fz*g.Ly/2,1)} kN·m`);
+    h+=step('Mrx / |ΣMx|','', `${fmt(r.t.Fz*g.Ly/2,1)} / ${fmt(Math.abs(r.t.sumMx),1)} = ${fmt(r.otx,2)}  (req'd ≥ ${g.sfOT})`);
+    h+=step('Mry / |ΣMy|','', `${fmt(r.t.Fz*g.Lx/2,1)} / ${fmt(Math.abs(r.t.sumMy),1)} = ${fmt(r.oty,2)}  (req'd ≥ ${g.sfOT})`);
+    h+=step('Sr','Fz·μ', `${fmt(r.t.Fz,1)} × ${g.mu} = ${fmt(r.Sr,1)} kN`);
+    h+=step('So','√(Fx²+Fy²)', `${fmt(r.So,1)} kN`);
+    h+=step('Sr / So','', `${fmt(r.slideRatio,2)}  (req'd ≥ ${g.sfSL})`);
+    h+=`<div class="rpt-concl ${otPass&&slPass?'pass':'fail'}">Conclusion: ${otPass?'OT O.K':'OT N.G'}, ${slPass?'Sliding O.K':'Sliding N.G'}</div>`;
+    if(!otPass) h+=failBox(`Overturning ratio (${fmt(Math.min(r.otx,r.oty),2)}) is below the required safety factor of ${g.sfOT}. Increase footing plan dimensions, reduce eccentric/lateral load, or add counterweight.`);
+    if(!slPass) h+=failBox(`Sliding ratio (${fmt(r.slideRatio,2)}) is below the required safety factor of ${g.sfSL}. Increase footing self-weight/embedment, add a shear key, or reduce lateral load.`);
+  });
+  h+='</div>';
+
+  if(design.has){
+    const {govX,govY,dx,dy,govP,Vpunch,phiVcPunch,punchOK,crX,crY,crXOK,crYOK,wMax,
+      phiSolve,phiP,PnN,rx,ry,bres,breslerSum,bresPass,govPed,d1,d2,dAvg,b0,areaIn,qu,mnoxFull,mnoyFull,AsHalf}=design;
+
+    function axisReport(label, D, gov){
+      let s=`<h4>${label}-axis (governing: LC ${gov.c.name})</h4>`;
+      s+=step('ds (cantilever length)','', `${fmt(D.ds,3)} m`);
+      s+=step('Shear 1','σmax·ds', `${fmt(D.sigmaMax,1)} × ${fmt(D.ds,3)} = ${fmt(D.shear1,1)} kN/m`);
+      s+=step('Moment 1','Shear1·ds/2', `${fmt(D.shear1,1)} × ${fmt(D.arm1,3)} = ${fmt(D.moment1,1)} kN·m/m`);
+      s+=step('Shear at d','σmax·(ds−d)', `${fmt(D.sigmaMax,1)} × (${fmt(D.ds,3)}−${fmt(D.dM,3)}) = ${fmt(D.shearAtD,1)} kN/m`);
+      s+=step('Dead load pressure σr','soilFactor·(γs·Hs+γc·Hf)', `${fmt(D.sr,2)} kN/m²`);
+      s+=step('S1 (dead load shear)','σr·(ds−d)', `${fmt(D.S1,1)} kN/m`);
+      s+=step('M1 (dead load moment)','σr·ds²/2', `${fmt(D.M1,1)} kN·m/m`);
+      s+=step('Net Vu','Shear@d − S1', `${fmt(D.shearAtD,1)} − ${fmt(D.S1,1)} = ${fmt(D.Vu,1)} kN/m`);
+      s+=step('Net Mu','Moment1 − M1', `${fmt(D.moment1,1)} − ${fmt(D.M1,1)} = ${fmt(D.Mu,1)} kN·m/m`);
+      if(!D.flex.error){
+        s+=step('Rn','Mu/(φ·f\'c·b·d²)', fmt(D.flex.Rn,4)+' MPa');
+        s+=step('ω (solving ω(1−0.59ω)=Rn)','', fmt(D.flex.w,4));
+        s+=step('ρ required','ω·f\'c/fy', fmt(D.rho,4)+(D.govByMin?' (below ρmin)':''));
+      } else {
+        s+=`<div class="rpt-fail-detail"><b>Flexure error:</b> section is over-reinforced at this thickness — the ω-quadratic has no real solution. Increase footing thickness or f'c.</div>`;
+      }
+      s+=step('ρmin','max(√f\'c/4fy, 1.4/fy)', fmt(D.rhoMin,4));
+      s+=step('ρ used','', fmt(D.rhoUse,4));
+      s+=step('As required','ρ·b·d', `${fmt(D.As,0)} mm²`);
+      s+=step('φVc (one-way shear capacity)','0.75·0.53·√f\'c(kgf/cm²)·b·d', `${fmt(D.phiVc,1)} kN`);
+      s+=`<div class="rpt-concl ${D.shearOK?'pass':'fail'}">One-way shear: Vu (${fmt(D.Vu,1)}) ${D.shearOK?'≤':'>'} φVc (${fmt(D.phiVc,1)}) → ${D.shearOK?'O.K':'N.G'}</div>`;
+      if(!D.shearOK) s+=failBox(`Vu = ${fmt(D.Vu,1)} kN exceeds φVc = ${fmt(D.phiVc,1)} kN by ${fmt(D.Vu-D.phiVc,1)} kN on the ${label}-axis critical section. Increase footing thickness (raises d), increase f'c, or add shear reinforcement.`);
+      return s;
+    }
+    h+=`<div class="rpt-sec"><h3>6. Footing Design (ultimate combinations)</h3>`;
+    h+=axisReport('X', dx, govX);
+    h+=axisReport('Y', dy, govY);
+
+    h+=`<h4>Two-way (punching) shear (governing: LC ${govP.c.name})</h4>`;
+    h+=step('b0 (critical perimeter)','2(dx+d)+2(dy+d)', `${fmt(b0,0)} mm`);
+    h+=step('Area inside critical section','(dx+d)(dy+d)', `${fmt(areaIn,3)} m²`);
+    h+=step('qu','Fz/A', `${fmt(qu,1)} kPa`);
+    h+=step('Vu','Fz − qu·Ain', `${fmt(govP.t.Fz,1)} − ${fmt(qu*areaIn,1)} = ${fmt(Vpunch,1)} kN`);
+    h+=step('φVc','0.75·1.1·√f\'c(kgf/cm²)·b0·d', `${fmt(phiVcPunch,1)} kN`);
+    h+=`<div class="rpt-concl ${punchOK?'pass':'fail'}">Conclusion: Vu (${fmt(Vpunch,1)}) ${punchOK?'≤':'>'} φVc (${fmt(phiVcPunch,1)}) → ${punchOK?'O.K':'N.G'}</div>`;
+    if(!punchOK) h+=failBox(`Punching shear demand exceeds capacity by ${fmt(Vpunch-phiVcPunch,1)} kN. Increase footing thickness (the dominant lever here, since d enters b0 and capacity both), increase f'c, or enlarge the pedestal.`);
+    h+='</div>';
+
+    h+=`<div class="rpt-sec"><h3>7. Crack Width Check (ACI 350, Gergely-Lutz)</h3>`;
+    if(!crX){
+      h+='<p class="note">No elastic combinations defined — crack width check skipped.</p></div>';
+    } else {
+    function crackReport(label, C){
+      let s=`<h4>${label}-axis (governing: LC ${C.gov.c.name})</h4>`;
+      s+=step('Ma (service moment)','', `${fmt(C.Ma,2)} kN·m/m`);
+      s+=step('n (modular ratio)','Es/Ec', fmt(C.cw.n,3));
+      s+=step('d (effective depth)','', `${fmt(C.cw.d,1)} mm`);
+      s+=step('C (neutral axis depth)','', `${fmt(C.cw.C,2)} mm`);
+      s+=step('Z (moment lever arm)','d−C/3', `${fmt(C.cw.Z,2)} mm`);
+      s+=step('fs (steel stress)','Ma/(Ast·Z)', `${fmt(C.cw.fs,2)} MPa`);
+      s+=step('P (depth factor)','', fmt(C.cw.P,3));
+      s+=step('Wcrk','0.011×10⁻³·P·fs·(A·at)^⅓', `${fmt(C.cw.Wcrk,3)} mm`);
+      const ok=C.cw.Wcrk<=design.wMax;
+      s+=`<div class="rpt-concl ${ok?'pass':'fail'}">Conclusion: Wcrk (${fmt(C.cw.Wcrk,3)}) ${ok?'≤':'>'} Wmax (${design.wMax}) → ${ok?'O.K':'N.G'}</div>`;
+      if(!ok) s+=failBox(`Crack width exceeds the ${design.wMax} mm limit by ${fmt(C.cw.Wcrk-design.wMax,3)} mm. Reduce bar spacing (more, smaller bars for the same As), increase cover-adjusted effective depth, or increase As beyond the strength-governed minimum.`);
+      return s;
+    }
+    h+=crackReport('X', crX);
+    h+=crackReport('Y', crY);
+    h+='</div>';
+    }
+
+    h+=`<div class="rpt-sec"><h3>8. Pedestal Design — Biaxial (Bresler, ACI 318-M14)</h3>
+      <p class="note">Mnox / Mnoy computed by strain-compatibility (extreme fiber concrete strain 0.003, elastic-plastic steel), not read from a P-M interaction chart — see note on the Results tab.</p>`;
+    h+=`<h4>Governing combination: LC ${govPed.c.name}</h4>`;
+    h+=step('Pu (factored axial)', '', `${fmt(design.PuN/1000,1)} kN`);
+    h+=step('εt (net tensile strain, iterated with φ)','', fmt(phiSolve.epsT,4));
+    h+=step('φ (ACI 318-M14 Table 21.2.2)','', fmt(phiP,3));
+    h+=step('Pn = Pu/φ','', `${fmt(PnN/1000,1)} kN`);
+    h+=step('As per direction (ρ/2 · Ag)','', `${fmt(AsHalf,0)} mm²`);
+    h+=step('Mnox (strain-compatibility, c solved)','c = '+fmt(mnoxFull.c,1)+' mm', `${fmt(mnoxFull.Mn/1e6,1)} kN·m`);
+    h+=step('Mnoy (strain-compatibility, c solved)','c = '+fmt(mnoyFull.c,1)+' mm', `${fmt(mnoyFull.Mn/1e6,1)} kN·m`);
+    h+=step('Mux, Muy (factored)','', `${fmt(design.MuxNmm/1e6,1)}, ${fmt(design.MuyNmm/1e6,1)} kN·m`);
+    h+=step('Mnx = Mux/φ, Mny = Muy/φ','', `${fmt(design.MnxNmm/1e6,1)}, ${fmt(design.MnyNmm/1e6,1)} kN·m`);
+    h+=step('Mnx/Mnox','', fmt(rx,3));
+    h+=step('Mny/Mnoy','', fmt(ry,3));
+    h+=step('β (solved from Bresler load-contour equation)','', fmt(bres.beta,3));
+    h+=step('α = ln0.5/lnβ','', fmt(bres.alpha,3));
+    h+=step('(Mnx/Mnox)^α + (Mny/Mnoy)^α','', fmt(breslerSum,3));
+    h+=`<div class="rpt-concl ${bresPass?'pass':'fail'}">Conclusion: Bresler sum (${fmt(breslerSum,3)}) ${bresPass?'≤':'>'} 1.0 → ${bresPass?'O.K':'N.G'}</div>`;
+    if(!bresPass) h+=failBox(`The biaxial interaction sum exceeds 1.0 by ${fmt(breslerSum-1,3)}. Increase pedestal steel ratio ρ, increase the pedestal cross-section, or reduce the governing moments (check whether a different load path or bracing can reduce Mux/Muy).`);
+    h+='</div>';
+  } else {
+    h+=`<div class="rpt-sec"><p class="note">No ultimate combinations defined — footing, punching, crack width, and pedestal design sections are skipped.</p></div>`;
+  }
+
+  document.getElementById('reportRoot').innerHTML=h;
+}
+document.getElementById('printReportBtn').addEventListener('click', ()=>window.print());
+
+// init
+renderLoadCases();
+renderComboTable();
+renderResults();
+</script>
+</body>
+</html>
